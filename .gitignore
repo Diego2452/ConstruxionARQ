@@ -12,11 +12,12 @@ node_modules/
 
 
 # ── Build outputs ─────────────────────────────────────
-.next/           # Next.js build cache
-out/             # Static export (lo que se sube a SiteGround)
+# (estos los genera el build — no van al repo)
+.next/
+out/
 dist/
 build/
-*.tsbuildinfo    # TypeScript incremental build info
+*.tsbuildinfo
 
 
 # ── FTP Deploy (GitHub Actions) ───────────────────────
