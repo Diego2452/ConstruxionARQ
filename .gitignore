@@ -1,0 +1,77 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  ConstruxionARQ — .gitignore
+#  Next.js 14 · TypeScript · Tailwind · SiteGround FTP
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+# ── Dependencies ──────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+
+# ── Build outputs ─────────────────────────────────────
+.next/           # Next.js build cache
+out/             # Static export (lo que se sube a SiteGround)
+dist/
+build/
+*.tsbuildinfo    # TypeScript incremental build info
+
+
+# ── FTP Deploy (GitHub Actions) ───────────────────────
+# Este archivo lo genera SamKirkland/FTP-Deploy-Action
+# para trackear qué archivos ya se subieron.
+# No debe ir al repo.
+.ftp-deploy-sync-state.json
+
+
+# ── Environment variables ─────────────────────────────
+# Nunca subas credenciales al repo
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+
+# ── Logs ──────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+
+# ── OS / Editor ───────────────────────────────────────
+.DS_Store           # macOS
+Thumbs.db           # Windows
+Desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?               # Vim swap files
+
+
+# ── IDE ───────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+
+
+# ── Testing / Coverage ────────────────────────────────
+coverage/
+.nyc_output/
+
+
+# ── Misc ──────────────────────────────────────────────
+.vercel             # Por si algún día se prueba Vercel
+.netlify
+.cache/
+*.tgz

@@ -1,0 +1,494 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Roboto+Flex:wght@300;400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: #151515;
+  color: #ffffff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+  cursor: none; /* hide default for custom cursor */
+}
+
+/* ── Custom Cursor ───────────────────────────────────── */
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 8px; height: 8px;
+  background: #C11D2A;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s, height 0.2s, background 0.2s;
+  will-change: transform;
+}
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(193,29,42,0.55);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s, border-color 0.3s;
+  will-change: transform;
+}
+body:not(.cursor-active) .cursor-dot,
+body:not(.cursor-active) .cursor-ring { opacity: 0; }
+
+/* hover state – expand ring */
+body.cursor-hover .cursor-ring {
+  width: 56px; height: 56px;
+  border-color: rgba(193,29,42,0.8);
+}
+
+/* ── Video Hero ──────────────────────────────────────── */
+.video-hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+.video-hero video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0; /* starts invisible, GSAP fades in */
+  will-change: opacity;
+}
+.video-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  will-change: opacity;
+}
+.video-hero__fade-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38vh;
+  background: linear-gradient(to bottom, transparent, #151515);
+  pointer-events: none;
+}
+.video-hero__content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+/* ── Typewriter ──────────────────────────────────────── */
+.typewriter-cursor::after {
+  content: '|';
+  animation: blink 1s step-end infinite;
+  color: #C11D2A;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ── Ken Burns Section ───────────────────────────────── */
+.kb-section {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+.kb-section__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  will-change: transform;
+}
+.kb-section__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.5) 100%);
+}
+.kb-section__content {
+  position: relative;
+  z-index: 5;
+  padding: 3rem 3rem 5rem;
+}
+
+/* ── Scroll indicator ────────────────────────────────── */
+@keyframes scroll-bounce {
+  0%,100% { transform: translateY(0); opacity: 1; }
+  50%      { transform: translateY(10px); opacity: 0.4; }
+}
+.scroll-indicator {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+/* ── Reveal animations ───────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+}
+.reveal.is-visible {
+  animation: fade-up 0.8s ease forwards;
+}
+@keyframes fade-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Project card ────────────────────────────────────── */
+.project-card {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  background: #1a1a1a;
+  cursor: none;
+}
+.project-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), filter 0.5s;
+  filter: brightness(0.85);
+}
+.project-card:hover img {
+  transform: scale(1.06);
+  filter: brightness(0.6);
+}
+.project-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+  transition: background 0.4s;
+}
+.project-card:hover .project-card__overlay {
+  background: linear-gradient(to top, rgba(193,29,42,0.4) 0%, rgba(0,0,0,0.5) 100%);
+}
+.project-card__title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem 1.25rem 1.25rem;
+  font-family: 'Roboto Flex', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: capitalize;
+  color: #fff;
+  transform: translateY(0);
+  transition: transform 0.4s, color 0.3s;
+}
+.project-card:hover .project-card__title {
+  transform: translateY(-6px);
+}
+
+/* ── Nav ─────────────────────────────────────────────── */
+.nav-link {
+  position: relative;
+  font-family: 'Roboto Flex', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: capitalize;
+  color: #e8e8e8;
+  text-decoration: none;
+  padding-bottom: 2px;
+  transition: color 0.25s;
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0;
+  width: 0; height: 1.5px;
+  background: #C11D2A;
+  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-link:hover, .nav-link.active { color: #C11D2A; }
+.nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+/* ── Team card ───────────────────────────────────────── */
+.team-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  filter: grayscale(20%) brightness(0.9);
+  transition: filter 0.4s;
+}
+.team-card:hover .team-photo {
+  filter: grayscale(0%) brightness(1);
+}
+
+/* ── Lightbox ────────────────────────────────────────── */
+.lightbox-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 88vh;
+  object-fit: contain;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ── Social icon ─────────────────────────────────────── */
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 50%;
+  transition: border-color 0.25s, background 0.25s;
+}
+.social-icon:hover {
+  border-color: #C11D2A;
+  background: #C11D2A;
+}
+.social-icon svg { transition: transform 0.2s; }
+.social-icon:hover svg { transform: scale(1.1); }
+
+/* ── Hamburger ───────────────────────────────────────── */
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: #fff;
+  margin: 4px 0;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+/* ── Mobile overlay ──────────────────────────────────── */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12,13,16,0.98);
+  z-index: 8000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.35s, visibility 0.35s;
+}
+.mobile-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* ── Misc ────────────────────────────────────────────── */
+.red-line {
+  display: inline-block;
+  width: 48px;
+  height: 2px;
+  background: #C11D2A;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+.section-eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #C11D2A;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  body { cursor: auto; }
+  .cursor-dot, .cursor-ring { display: none; }
+}
+
+/* ── Panel CTA button ────────────────────────────────── */
+.panel-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1.8rem;
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+  text-decoration: none;
+  font-family: 'Roboto Flex', sans-serif;
+  font-size: 0.73rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 400;
+  transition: border-color 0.25s, background 0.25s, color 0.25s;
+}
+.panel-cta:hover {
+  border-color: #C11D2A;
+  background: #C11D2A;
+  color: #fff;
+}
+
+/* ── Search bar (proyectos) ──────────────────────────── */
+.search-wrapper {
+  position: relative;
+  max-width: 420px;
+}
+.search-wrapper .bi-search {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #5a5a5a;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+.search-wrapper input {
+  width: 100%;
+  padding: 0.72rem 1rem 0.72rem 2.7rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.11);
+  color: #fff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.search-wrapper input:focus {
+  border-color: #C11D2A;
+  background: rgba(255,255,255,0.08);
+}
+.search-wrapper input::placeholder { color: rgba(255,255,255,0.28); }
+
+/* ── Pagination ──────────────────────────────────────── */
+.pagination-btn {
+  min-width: 36px; height: 36px; padding: 0 0.55rem;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.pagination-btn:hover:not(:disabled) {
+  border-color: #C11D2A;
+  color: #C11D2A;
+}
+.pagination-btn.active {
+  background: #C11D2A;
+  border-color: #C11D2A;
+  color: #fff;
+}
+.pagination-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* ── Scroll indicator (homepage) ─────────────────────── */
+@keyframes bounce-soft {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(7px); }
+}
+.scroll-indicator { animation: bounce-soft 2.2s ease-in-out infinite; }
+
+/* ── Contact card ────────────────────────────────────── */
+.contact-card {
+  background: #0d0d0d;
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 2rem 1.6rem;
+  transition: border-color 0.3s;
+}
+.contact-card:hover { border-color: rgba(193,29,42,0.4); }
+
+/* ══ PAGE CARD ══════════════════════════════════════════
+   Full-width black. Gradient ONLY top & bottom (fades
+   into adjacent stock images). No side gradients.
+═══════════════════════════════════════════════════════ */
+.page-card {
+  position: relative;
+  background: #000;
+  z-index: 2;
+}
+/* Top gradient: transparent → #000 (extends 80px up into image above) */
+.page-card::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: 0; right: 0; height: 80px;
+  background: linear-gradient(to bottom, transparent, #000);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Bottom gradient: #000 → transparent (extends 80px down into image below) */
+.page-card::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: 0; right: 0; height: 80px;
+  background: linear-gradient(to top, transparent, #000);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ══ STAT SUBCARD ═══════════════════════════════════════
+   Red card with inner gradient top & bottom —
+   same philosophy as page-card but at subcard scale.
+═══════════════════════════════════════════════════════ */
+.stat-subcard {
+  position: relative;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: default;
+  transition: filter 0.25s ease, transform 0.25s ease;
+  /* Red with fade top and bottom into the surrounding black */
+  background: linear-gradient(
+    to bottom,
+    transparent   0%,
+    #C11D2A      12%,
+    #C11D2A      88%,
+    transparent 100%
+  );
+}
+.stat-subcard:hover {
+  filter: brightness(1.45) saturate(1.1);
+  transform: translateY(-3px);
+}
+
+/* ── Stats grid responsive ── */
+@media (max-width: 640px) {
+  .stats-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ══ STOCK IMAGE SECTION ════════════════════════════════
+   Sits at z-index 1 so page-card::before/::after
+   (z-index 2) render on top — creating the overlap fade.
+═══════════════════════════════════════════════════════ */
+.stock-section {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-attachment: scroll;
+  z-index: 1;
+}
+/* Subtle dark overlay on stock images */
+.stock-section::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.22);
+  pointer-events: none;
+}
