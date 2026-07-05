@@ -27,6 +27,10 @@ export default function ImageSection({ title, images }: ImageSectionProps) {
   if (!images || images.length === 0) return null
 
   const hasMultiple = images.length > 1
+  const lightboxImages = images.map((src, index) => ({
+    src,
+    alt: `${title} — imagen ${index + 1}`,
+  }))
 
   const openLightbox = (idx: number) => {
     setLightboxIdx(idx)
@@ -159,8 +163,8 @@ export default function ImageSection({ title, images }: ImageSectionProps) {
       {/* Lightbox */}
       {lightboxOpen && (
         <Lightbox
-          images={images}
-          current={lightboxIdx}
+          images={lightboxImages}
+          index={lightboxIdx}
           onClose={closeLightbox}
           onPrev={prevLightbox}
           onNext={nextLightbox}
