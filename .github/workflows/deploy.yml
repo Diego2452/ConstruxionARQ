@@ -3,8 +3,8 @@ name: 🚀 Deploy to SiteGround
 on:
   push:
     branches:
-      - main          # dispara en cada push a main
-  workflow_dispatch:  # también permite correrlo manualmente desde GitHub
+      - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -16,14 +16,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Setup Node (misma versión que usás local)
+      # 2. Setup Node
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # 3. Instalar dependencias (usa package-lock.json para reproducibilidad)
+      # 3. Instalar dependencias
       - name: Install dependencies
         run: npm ci
 
@@ -32,23 +32,19 @@ jobs:
         run: npm run build
 
       # 5. Subir out/ a SiteGround vía FTP
-      #    Solo sube archivos nuevos o modificados (no borra los existentes)
+      #    Solo sube archivos nuevos o modificados, NUNCA borra lo existente
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server:      ${{ secrets.FTP_SERVER }}
-          username:    ${{ secrets.FTP_USERNAME }}
-          password:    ${{ secrets.FTP_PASSWORD }}
-          local-dir:   ./out/
-          
-          # NOTA DE SEGURIDAD PARA LA PRIMERA PRUEBA:
-          # Se apunta a /public_html/nuevo/ para verificar que el flujo funcione sin tocar la web actual.
-          # Una vez que confirmes que todo sube bien, cambia esta línea a: server-dir: /public_html/
-          server-dir: /construxionarq.com/
-          
-          # Excluye archivos del servidor que no deben tocarse:
+          server:               ${{ secrets.FTP_SERVER }}
+          username:             ${{ secrets.FTP_USERNAME }}
+          password:             ${{ secrets.FTP_PASSWORD }}
+          local-dir:            ./out/
+          server-dir:           /public_html/
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            .htaccess    # no sobreescribas tu .htaccess de SiteGround
+            wp-content/**
+            .htaccess
