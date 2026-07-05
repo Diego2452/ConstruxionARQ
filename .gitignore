@@ -27,8 +27,8 @@ build/
 .ftp-deploy-sync-state.json
 
 
-# ── Environment variables ─────────────────────────────
-# Nunca subas credenciales al repo
+# ── Environment variables & Local Backups ─────────────
+# Nunca subas credenciales ni contraseñas reales al repo
 .env
 .env.local
 .env.development
@@ -37,6 +37,10 @@ build/
 .env.test.local
 .env.production
 .env.production.local
+
+# Respaldos locales con contraseñas en texto plano (¡Muy importante!)
+DEPLOY_INFO.md
+README_DEPLOY.md
 
 
 # ── Logs ──────────────────────────────────────────────

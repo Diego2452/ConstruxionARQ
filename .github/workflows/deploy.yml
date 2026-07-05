@@ -40,7 +40,12 @@ jobs:
           username:    ${{ secrets.FTP_USERNAME }}
           password:    ${{ secrets.FTP_PASSWORD }}
           local-dir:   ./out/
-          server-dir:  /public_html/
+          
+          # NOTA DE SEGURIDAD PARA LA PRIMERA PRUEBA:
+          # Se apunta a /public_html/nuevo/ para verificar que el flujo funcione sin tocar la web actual.
+          # Una vez que confirmes que todo sube bien, cambia esta línea a: server-dir: /public_html/
+          server-dir:  /public_html/nuevo/
+          
           # Excluye archivos del servidor que no deben tocarse:
           exclude: |
             **/.git*
