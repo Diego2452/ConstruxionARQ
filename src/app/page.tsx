@@ -24,6 +24,7 @@ const PANELS = [
 
 export default function HomePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const pausingRef = useRef(false);
   const [typed,   setTyped]   = useState('');
   const [showCsr, setShowCsr] = useState(true);
   const [showSub, setShowSub] = useState(false);
@@ -66,7 +67,17 @@ export default function HomePage() {
 
         {/* Video */}
         <video
-          autoPlay muted loop playsInline preload="auto"
+          ref={videoRef}
+          autoPlay muted playsInline preload="auto"
+          onEnded={() => {
+            const v = videoRef.current;
+            if (!v || pausingRef.current) return;
+            pausingRef.current = true;
+            setTimeout(() => {
+              if (v) { v.currentTime = 0; v.play(); }
+              pausingRef.current = false;
+            }, 1000);
+          }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         >
           <source src="https://construxionarq.com/videos/hero.mp4" type="video/mp4" />
