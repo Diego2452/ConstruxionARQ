@@ -69,8 +69,10 @@ export default function HomePage() {
           ref={videoRef}
           autoPlay muted playsInline preload="auto"
           onTimeUpdate={() => {
-            if (videoRef.current && videoRef.current.currentTime >= 13.5) {
-              videoRef.current.currentTime = 0;
+            const v = videoRef.current;
+            if (v && v.currentTime >= 13.5) {
+              v.currentTime = 0;
+              v.play();
             }
           }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
