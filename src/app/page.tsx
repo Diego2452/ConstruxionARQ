@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 
 /* Unsplash architecture/construction stock images */
@@ -23,6 +23,7 @@ const PANELS = [
 ];
 
 export default function HomePage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [typed,   setTyped]   = useState('');
   const [showCsr, setShowCsr] = useState(true);
   const [showSub, setShowSub] = useState(false);
@@ -65,7 +66,13 @@ export default function HomePage() {
 
         {/* Video */}
         <video
-          autoPlay muted loop playsInline preload="auto"
+          ref={videoRef}
+          autoPlay muted playsInline preload="auto"
+          onTimeUpdate={() => {
+            if (videoRef.current && videoRef.current.currentTime >= 13.5) {
+              videoRef.current.currentTime = 0;
+            }
+          }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         >
           <source src="/videos/hero.mp4" type="video/mp4" />
