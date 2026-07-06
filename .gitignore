@@ -43,6 +43,14 @@ DEPLOY_INFO.md
 README_DEPLOY.md
 
 
+# ── Videos grandes (subir manualmente a SiteGround) ───
+# GitHub bloquea archivos mayores a 50MB
+public/videos/*.mp4
+public/videos/*.mov
+public/videos/*.avi
+public/videos/*.webm
+
+
 # ── Logs ──────────────────────────────────────────────
 *.log
 npm-debug.log*
@@ -54,14 +62,14 @@ lerna-debug.log*
 
 
 # ── OS / Editor ───────────────────────────────────────
-.DS_Store           # macOS
-Thumbs.db           # Windows
+.DS_Store
+Thumbs.db
 Desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?               # Vim swap files
+*.sw?
 
 
 # ── IDE ───────────────────────────────────────────────
@@ -76,7 +84,7 @@ coverage/
 
 
 # ── Misc ──────────────────────────────────────────────
-.vercel             # Por si algún día se prueba Vercel
+.vercel
 .netlify
 .cache/
 *.tgz
