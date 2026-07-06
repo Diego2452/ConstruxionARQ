@@ -47,4 +47,5 @@ jobs:
             **/.git*/**
             **/node_modules/**
             wp-content/**
+            videos/**
             .htaccess
