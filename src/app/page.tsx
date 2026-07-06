@@ -66,15 +66,7 @@ export default function HomePage() {
 
         {/* Video */}
         <video
-          ref={videoRef}
-          autoPlay muted playsInline preload="auto"
-          onTimeUpdate={() => {
-            const v = videoRef.current;
-            if (v && v.currentTime >= 13.5) {
-              v.currentTime = 0;
-              v.play();
-            }
-          }}
+          autoPlay muted loop playsInline preload="auto"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         >
           <source src="https://construxionarq.com/videos/hero.mp4" type="video/mp4" />
