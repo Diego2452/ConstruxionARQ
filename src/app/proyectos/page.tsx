@@ -19,19 +19,38 @@ export default function ProyectosPage() {
 
   // Fetch from Supabase
   useEffect(() => {
-    supabase
-      .from('projects')
-      .select('id, slug, title, year, location, architect, project_images(*)')
-      .order('year', { ascending: false })
-      .then(({ data }) => {
-        setProjects((data ?? []).map(p => ({
-          ...p,
-          project_images: (p.project_images ?? []).sort(
-            (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
-          ),
-        })));
+    let isMounted = true;
+
+    const loadProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*, project_images(*)')
+        .order('year', { ascending: false });
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error('Error loading projects:', error);
         setLoading(false);
-      });
+        return;
+      }
+
+      const normalizedProjects = ((data ?? []) as DBProject[]).map(p => ({
+        ...p,
+        project_images: (p.project_images ?? []).sort(
+          (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
+        ),
+      }));
+
+      setProjects(normalizedProjects);
+      setLoading(false);
+    };
+
+    loadProjects();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => setPage(1), [search]);
