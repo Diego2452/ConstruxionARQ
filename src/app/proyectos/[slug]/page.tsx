@@ -1,29 +1,38 @@
-/* ── SERVER COMPONENT ── generateStaticParams aquí ── */
+/* ── SERVER COMPONENT — generateStaticParams desde Supabase ── */
 import { notFound } from 'next/navigation';
-import { projects } from '@/data/projects';
+import { getProjectBySlug, getProjects } from '@/lib/supabase';
 import ProjectContent from '@/components/ProjectContent';
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const projects = await getProjects().catch(() => []);
   return projects.map(p => ({ slug: p.slug }));
 }
 
 interface Props { params: { slug: string } }
 
-export default function ProjectPage({ params }: Props) {
-  const project = projects.find(p => p.slug === params.slug);
+export default async function ProjectPage({ params }: Props) {
+  const project = await getProjectBySlug(params.slug);
   if (!project) notFound();
+
+  const images = (project.project_images ?? []).map(img => ({
+    src:       img.src,
+    alt:       img.alt,
+    caption:   img.caption ?? undefined,
+    is_primary: img.is_primary,
+  }));
 
   return (
     <ProjectContent
+      slug={project.slug}
       title={project.title}
-      description={project.description}
-      thumbnail={project.thumbnail}
-      location={project.location}
-      architect={project.architect}
-      manager={project.manager}
-      dimensions={project.dimensions}
-      year={project.year}
-      images={project.images}
+      description={project.description ?? undefined}
+      thumbnail={images.find(i => i.is_primary)?.src ?? images[0]?.src ?? ''}
+      location={project.location ?? undefined}
+      architect={project.architect ?? undefined}
+      manager={project.manager ?? undefined}
+      dimensions={project.dimensions ?? undefined}
+      year={project.year ?? undefined}
+      images={images}
     />
   );
 }
