@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AdminGuard from '@/components/admin/AdminGuard';
 import { supabase, DBProject, getPrimaryImage, getProjects } from '@/lib/supabase';
+import { logAction } from '@/lib/audit';
 
 const PAGE_SIZE = 10;
 
@@ -421,6 +422,27 @@ export default function AdminProyectosPage() {
           }))
         );
         if (iErr) throw new Error(iErr.message);
+
+        // Build detailed audit description
+        const changed: string[] = [];
+        if (editProject.title    !== title.trim())       changed.push('título');
+        if (editProject.location !== (location.trim() || null)) changed.push('ubicación');
+        if (editProject.architect !== (architect.trim() || null)) changed.push('arquitecto');
+        if (editProject.year     !== (year.trim() || null)) changed.push('año');
+        if (editProject.description !== (description.trim() || null)) changed.push('descripción');
+        const prevImgCount = editProject.project_images?.length ?? 0;
+        const imgChanged   = prevImgCount !== validImgs.length;
+        if (imgChanged) changed.push(`imágenes (${prevImgCount} → ${validImgs.length})`);
+
+        const changeDesc = changed.length > 0
+          ? `Se actualizó: ${changed.join(', ')}.`
+          : 'Sin cambios en campos de texto.';
+
+        const action = imgChanged ? 'project_images_updated' : 'project_updated';
+        await logAction(action,
+          `Se editó el proyecto "${title.trim()}". ${changeDesc}`,
+          { entityId: editProject.id, entityName: title.trim(), details: changed.length > 0 ? Object.fromEntries(changed.map(c => [c, '✓'])) : {} }
+        );
       } else {
         const { data: newP, error: pErr } = await supabase.from('projects').insert({
           slug: slug.trim(), title: title.trim(),
@@ -440,6 +462,12 @@ export default function AdminProyectosPage() {
           }))
         );
         if (iErr) throw new Error(iErr.message);
+
+        // Audit log: created
+        await logAction('project_created',
+          `Se creó el proyecto "${title.trim()}" con ${validImgs.length} imagen${validImgs.length !== 1 ? 'es' : ''}.`,
+          { entityId: newP.id, entityName: title.trim(), details: { slug: slug.trim(), año: year.trim() || '—', imágenes: validImgs.length } }
+        );
       }
 
       await load();
@@ -454,7 +482,13 @@ export default function AdminProyectosPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await supabase.from('projects').delete().eq('id', deleteTarget.id);
+    const { error } = await supabase.from('projects').delete().eq('id', deleteTarget.id);
+    if (!error) {
+      await logAction('project_deleted',
+        `Se eliminó el proyecto "${deleteTarget.title}" (slug: ${deleteTarget.slug}).`,
+        { entityId: deleteTarget.id, entityName: deleteTarget.title }
+      );
+    }
     setDeleteTarget(null);
     const newTotal = Math.max(1, Math.ceil((projects.length - 1) / PAGE_SIZE));
     if (page > newTotal) setPage(newTotal);

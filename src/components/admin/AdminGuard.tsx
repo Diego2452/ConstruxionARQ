@@ -1,19 +1,19 @@
 'use client';
 import { useEffect, useState, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
-interface Props { children: ReactNode }
-
 const adminLinks = [
-  { href: '/admin/dashboard',  label: 'Dashboard',  icon: 'bi-grid-1x2' },
-  { href: '/admin/proyectos',  label: 'Proyectos',  icon: 'bi-images'   },
-  { href: '/admin/usuarios',   label: 'Usuarios',   icon: 'bi-people'   },
+  { href: '/admin/dashboard',  label: 'Dashboard',  icon: 'bi-grid-1x2'    },
+  { href: '/admin/proyectos',  label: 'Proyectos',  icon: 'bi-images'      },
+  { href: '/admin/usuarios',   label: 'Usuarios',   icon: 'bi-people'      },
+  { href: '/admin/audit-log',  label: 'Audit Log',  icon: 'bi-journal-text'},
 ];
 
-export default function AdminGuard({ children }: Props) {
-  const router = useRouter();
+export default function AdminGuard({ children }: { children: ReactNode }) {
+  const router   = useRouter();
+  const pathname = usePathname();
   const [checking, setChecking] = useState(true);
   const [authed,   setAuthed]   = useState(false);
   const [email,    setEmail]    = useState('');
@@ -53,37 +53,37 @@ export default function AdminGuard({ children }: Props) {
         height: 48,
       }}>
         <div className="max-w-[1290px] mx-auto h-full flex items-center justify-between px-6 lg:px-10">
-          {/* Links */}
-          <nav style={{ display: 'flex', gap: '0.25rem' }}>
-            {adminLinks.map(({ href, label, icon }) => (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                  padding: '0.3rem 1rem',
-                  fontFamily: "'Roboto Flex', sans-serif",
-                  fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.55)', textDecoration: 'none',
-                  transition: 'color 0.2s, background 0.2s',
-                  borderRadius: 2,
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#C11D2A')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-              >
-                <i className={`bi ${icon}`} style={{ fontSize: '0.8rem' }} />
-                {label}
-              </Link>
-            ))}
+          <nav style={{ display: 'flex', gap: '0.1rem' }}>
+            {adminLinks.map(({ href, label, icon }) => {
+              const active = pathname === href || pathname.startsWith(href + '/');
+              return (
+                <Link key={href} href={href}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    padding: '0.3rem 0.9rem',
+                    fontFamily: "'Roboto Flex', sans-serif",
+                    fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: active ? '#C11D2A' : 'rgba(255,255,255,0.5)',
+                    textDecoration: 'none',
+                    borderBottom: active ? '2px solid #C11D2A' : '2px solid transparent',
+                    transition: 'color 0.2s, border-color 0.2s',
+                    height: '100%',
+                  }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = '#C11D2A'; }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}
+                >
+                  <i className={`bi ${icon}`} style={{ fontSize: '0.78rem' }} />
+                  <span className="hidden sm:inline">{label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* Right: email + logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }} className="hidden md:block">
               {email}
             </span>
-            <button
-              onClick={handleLogout}
+            <button onClick={handleLogout}
               style={{
                 background: 'none', border: '1px solid rgba(255,255,255,0.15)',
                 color: 'rgba(255,255,255,0.45)', padding: '0.25rem 0.8rem',
@@ -92,15 +92,13 @@ export default function AdminGuard({ children }: Props) {
                 transition: 'border-color 0.2s, color 0.2s',
               }}
               onMouseEnter={e => { const b = e.currentTarget; b.style.borderColor = '#C11D2A'; b.style.color = '#C11D2A'; }}
-              onMouseLeave={e => { const b = e.currentTarget; b.style.borderColor = 'rgba(255,255,255,0.15)'; b.style.color = 'rgba(255,255,255,0.45)'; }}
-            >
+              onMouseLeave={e => { const b = e.currentTarget; b.style.borderColor = 'rgba(255,255,255,0.15)'; b.style.color = 'rgba(255,255,255,0.45)'; }}>
               <i className="bi bi-box-arrow-right" /> Salir
             </button>
           </div>
         </div>
       </div>
 
-      {/* Page content with extra top padding for sub-nav */}
       <div style={{ paddingTop: 48 }}>
         {children}
       </div>
