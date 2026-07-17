@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
@@ -34,6 +35,30 @@ export default function ProjectContent({ slug, title, description, thumbnail, lo
     { label: tr.dimensions, value: dimensions },
     { label: tr.year,       value: year       },
   ].filter(r => r.value);
+
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>('.reveal');
+    if (!elements.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      elements.forEach(el => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   // Primary image first, then rest
   const sorted = [...images].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));

@@ -88,3 +88,8 @@ coverage/
 .netlify
 .cache/
 *.tgz
+
+# ── Scripts temporales de scraping ────────────────────
+scrape-images.js
+scrape-datos.js
+show-structure.ps1
