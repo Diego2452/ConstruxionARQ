@@ -3,18 +3,16 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import ProjectContent from '@/components/ProjectContent';
 
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 // Client independiente para el build server-side
 function getClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-}
-
-export async function generateStaticParams() {
-  const supabase = getClient();
-  const { data } = await supabase.from('projects').select('slug');
-  return (data ?? []).map(p => ({ slug: p.slug }));
 }
 
 interface Props { params: { slug: string } }
