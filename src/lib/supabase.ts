@@ -7,49 +7,50 @@ export const supabase = createClient(url, key);
 
 // ── Types ────────────────────────────────────────────────
 export interface DBImage {
-  id: string;
-  project_id: string;
-  src: string;
-  alt: string;
-  caption: string | null;
-  is_primary: boolean;
-  sort_order: number;
+  id:          string;
+  project_id:  string;
+  src:         string;
+  alt:         string;
+  caption:     string | null;
+  is_primary:  boolean;
+  sort_order:  number;
+  media_type?: 'image' | 'video';   // ← nuevo
 }
 
 export interface DBProject {
-  id: string;
-  slug: string;
-  title: string;
-  location: string | null;
-  manager: string | null;
-  architect: string | null;
-  dimensions: string | null;
-  description: string | null;
-  year: string | null;
-  category: string | null;
-  created_at: string;
-  updated_at: string;
+  id:             string;
+  slug:           string;
+  title:          string;
+  location:       string | null;
+  manager:        string | null;
+  architect:      string | null;
+  dimensions:     string | null;
+  description:    string | null;
+  year:           string | null;
+  category:       string | null;
+  created_at:     string;
+  updated_at:     string;
   project_images?: DBImage[];
 }
 
 // ── Helpers ──────────────────────────────────────────────
+function sortImages(imgs: DBImage[]): DBImage[] {
+  return [...imgs].sort((a, b) => {
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+}
 
-/** Fetch all projects with their images */
 export async function getProjects(): Promise<DBProject[]> {
   const { data, error } = await supabase
     .from('projects')
     .select('*, project_images(*)')
     .order('year', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map(p => ({
-    ...p,
-    project_images: (p.project_images ?? []).sort(
-      (a: DBImage, b: DBImage) => a.sort_order - b.sort_order
-    ),
-  }));
+  return (data ?? []).map(p => ({ ...p, project_images: sortImages(p.project_images ?? []) }));
 }
 
-/** Fetch one project by slug */
 export async function getProjectBySlug(slug: string): Promise<DBProject | null> {
   const { data, error } = await supabase
     .from('projects')
@@ -57,16 +58,15 @@ export async function getProjectBySlug(slug: string): Promise<DBProject | null> 
     .eq('slug', slug)
     .single();
   if (error) return null;
-  return {
-    ...data,
-    project_images: (data.project_images ?? []).sort(
-      (a: DBImage, b: DBImage) => a.sort_order - b.sort_order
-    ),
-  };
+  return { ...data, project_images: sortImages(data.project_images ?? []) };
 }
 
-/** Get primary image for a project */
 export function getPrimaryImage(project: DBProject): DBImage | undefined {
-  return project.project_images?.find(i => i.is_primary)
-    ?? project.project_images?.[0];
+  return project.project_images?.find(i => i.is_primary) ?? project.project_images?.[0];
+}
+
+// ── Detectar tipo de media por URL (fallback para datos viejos) ──
+export function detectMediaType(url: string): 'image' | 'video' {
+  if (/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i.test(url)) return 'video';
+  return 'image';
 }

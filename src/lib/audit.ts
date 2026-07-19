@@ -17,14 +17,18 @@ export async function logAction(
     details?:    Record<string, unknown>;
   }
 ) {
-  const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from('audit_logs').insert({
-    action,
-    entity_type:  opts?.entityType ?? 'project',
-    entity_id:    opts?.entityId,
-    entity_name:  opts?.entityName,
-    description,
-    details:      opts?.details ?? null,
-    user_email:   user?.email ?? 'desconocido',
-  });
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('audit_logs').insert({
+      action,
+      entity_type:  opts?.entityType ?? 'project',
+      entity_id:    opts?.entityId,
+      entity_name:  opts?.entityName,
+      description,
+      details:      opts?.details ?? null,
+      user_email:   user?.email ?? 'desconocido',
+    });
+  } catch {
+    // Audit log failure is non-fatal
+  }
 }
