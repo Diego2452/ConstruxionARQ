@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
-import { supabase, DBProject, getPrimaryImage } from '@/lib/supabase';
+import { supabase, DBProject, getPrimaryImage, detectMediaType } from '@/lib/supabase';
 
 const PAGE_SIZE = 6;
 
@@ -130,16 +130,29 @@ export default function ProyectosPage() {
         ) : visible.length > 0 ? (
           visible.map((p, i) => {
             const primary = getPrimaryImage(p);
+            const mediaType = (primary?.media_type) ? primary.media_type : detectMediaType(primary?.src ?? '');
+            const isVideo = mediaType === 'video';
+
             return (
               <Link key={p.slug} href={`/proyectos/${p.slug}/`}
                 className="reveal project-card block"
                 style={{ transitionDelay: `${(i % 3) * 0.07}s` }}
               >
-                <img
-                  src={primary?.src ?? ''}
-                  alt={primary?.alt ?? p.title}
-                  loading={i < 6 ? 'eager' : 'lazy'}
-                />
+                {isVideo ? (
+                  <video
+                    src={primary?.src ?? ''}
+                    autoPlay
+                    muted
+                    loop
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <img
+                    src={primary?.src ?? ''}
+                    alt={primary?.alt ?? p.title}
+                    loading={i < 6 ? 'eager' : 'lazy'}
+                  />
+                )}
                 <div className="project-card__overlay" />
                 <div className="project-card__title">{p.title}</div>
                 {p.year && (

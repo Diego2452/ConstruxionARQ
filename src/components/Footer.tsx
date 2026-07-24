@@ -1,10 +1,12 @@
 'use client';
+
 import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
 
 export default function Footer() {
   const { lang } = useLang();
   const label = t[lang].footer;
+
   return (
     <footer style={{ background: '#000', position: 'relative', zIndex: 5 }}>
       <div className="max-w-[1290px] mx-auto px-6 py-7 text-center">
@@ -12,9 +14,18 @@ export default function Footer() {
           © <em>2022 – 2026</em>{' '}
           <strong className="text-white/60">ConstruxionArq</strong> — {label}
           &nbsp;|&nbsp; Web design by{' '}
-          <a href="mailto:diegovargas087@gmail.com" className="underline hover:text-accent transition-colors">
-            diegovargas087@gmail.com
+          <a
+            href="https://prowebsolutionscr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-accent transition-colors"
+          >
+            PROWEB Solutions
           </a>
+          &nbsp;|&nbsp;
+          <span>
+            Last update: <strong className="text-white/60">v1.9.0</strong> · July 24, 2026
+          </span>
         </p>
       </div>
     </footer>

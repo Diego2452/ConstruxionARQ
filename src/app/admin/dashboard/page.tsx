@@ -4,19 +4,33 @@ import AdminGuard from '@/components/admin/AdminGuard';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
-  const [stats,     setStats]     = useState({ projects: 0, images: 0 });
+  const [stats,     setStats]     = useState({ projects: 0, images: 0, about: 0, users: 0 });
   const [loading,   setLoading]   = useState(true);
   const [deploying, setDeploying] = useState(false);
   const [deployMsg, setDeployMsg] = useState('');
 
   useEffect(() => {
-    Promise.all([
-      supabase.from('projects').select('*', { count: 'exact', head: true }),
-      supabase.from('project_images').select('*', { count: 'exact', head: true }),
-    ]).then(([{ count: p }, { count: i }]) => {
-      setStats({ projects: p ?? 0, images: i ?? 0 });
+    async function fetchStats() {
+      const [
+        { count: projects },
+        { count: images },
+        { count: about },
+        { data: usersData },
+      ] = await Promise.all([
+        supabase.from('projects').select('*', { count: 'exact', head: true }),
+        supabase.from('project_images').select('*', { count: 'exact', head: true }),
+        supabase.from('about_blocks').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.rpc('get_admin_users'),
+      ]);
+      setStats({
+        projects: projects ?? 0,
+        images:   images   ?? 0,
+        about:    about    ?? 0,
+        users:    Array.isArray(usersData) ? usersData.length : 0,
+      });
       setLoading(false);
-    });
+    }
+    fetchStats();
   }, []);
 
   const handleDeploy = async () => {
@@ -36,6 +50,13 @@ export default function DashboardPage() {
     setDeploying(false);
   };
 
+  const statCards = [
+    { label: 'Proyectos',       value: stats.projects, icon: 'bi-images',              href: '/admin/proyectos' },
+    { label: 'Media',           value: stats.images,   icon: 'bi-card-image',          href: '/admin/proyectos' },
+    { label: 'Bloques Nosotros',value: stats.about,    icon: 'bi-person-lines-fill',   href: '/admin/nosotros'  },
+    { label: 'Administradores', value: stats.users,    icon: 'bi-people',              href: '/admin/usuarios'  },
+  ];
+
   return (
     <AdminGuard>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
@@ -46,16 +67,18 @@ export default function DashboardPage() {
           <h1 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: 'clamp(1.8rem,3vw,2.8rem)', fontWeight: 200, letterSpacing: '0.08em', color: '#fff', marginTop: '0.4rem' }}>Dashboard</h1>
           <div style={{ width: 40, height: 1.5, background: '#C11D2A', margin: '1rem 0 3rem' }} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.2rem', marginBottom: '3rem' }}>
-            {[
-              { label: 'Proyectos', value: stats.projects, icon: 'bi-images',     href: '/admin/proyectos' },
-              { label: 'Media',     value: stats.images,   icon: 'bi-card-image', href: '/admin/proyectos' },
-            ].map(c => (
+          {/* Stat cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1.2rem', marginBottom: '3rem' }}>
+            {statCards.map(c => (
               <a key={c.label} href={c.href} style={{ textDecoration: 'none' }}>
-                <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', padding: '2rem 1.6rem', transition: 'border-color 0.2s' }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(193,29,42,0.4)')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)')}>
-                  <i className={`bi ${c.icon}`} style={{ fontSize: '1.5rem', color: '#C11D2A', display: 'block', marginBottom: '1rem' }} />
-                  <p style={{ fontSize: 'clamp(2rem,4vw,3rem)', fontFamily: "'Roboto Flex',sans-serif", fontWeight: 200, color: '#fff', lineHeight: 1 }}>{loading ? '—' : c.value}</p>
-                  <p style={{ fontSize: '0.68rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginTop: '0.5rem' }}>{c.label}</p>
+                <div style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.07)', padding: '1.8rem 1.4rem', transition: 'border-color 0.2s' }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(193,29,42,0.4)')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)')}>
+                  <i className={`bi ${c.icon}`} style={{ fontSize: '1.4rem', color: '#C11D2A', display: 'block', marginBottom: '0.8rem' }} />
+                  <p style={{ fontSize: 'clamp(1.8rem,3.5vw,2.6rem)', fontFamily: "'Roboto Flex',sans-serif", fontWeight: 200, color: '#fff', lineHeight: 1 }}>
+                    {loading ? '—' : c.value}
+                  </p>
+                  <p style={{ fontSize: '0.65rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginTop: '0.4rem' }}>{c.label}</p>
                 </div>
               </a>
             ))}
@@ -66,7 +89,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A', marginBottom: '0.6rem' }}>Deploy</p>
             <h2 style={{ fontFamily: "'Roboto Flex',sans-serif", fontWeight: 200, color: '#fff', fontSize: '1.2rem', marginBottom: '0.8rem' }}>Publicar cambios al sitio</h2>
             <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: '1.5rem', maxWidth: 520 }}>
-              Los proyectos nuevos aparecen de inmediato en la grilla. Presioná <strong style={{ color: 'rgba(255,255,255,0.65)' }}>Publicar</strong> para que la página individual del proyecto también esté disponible (~3 min).
+              Los proyectos nuevos aparecen de inmediato en la grilla. Presioná <strong style={{ color: 'rgba(255,255,255,0.65)' }}>Publicar</strong> para que la página individual también esté disponible (~3 min).
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <button onClick={handleDeploy} disabled={deploying}
@@ -82,14 +105,23 @@ export default function DashboardPage() {
                 <i className="bi bi-github" /> Ver estado
               </a>
             </div>
-            {deployMsg && <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: deployMsg.startsWith('✓') ? '#4caf50' : '#C11D2A', letterSpacing: '0.04em' }}>{deployMsg}</p>}
+            {deployMsg && <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: deployMsg.startsWith('✓') ? '#4caf50' : '#C11D2A' }}>{deployMsg}</p>}
           </div>
 
+          {/* Quick links */}
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '2rem' }}>
             <p style={{ fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: '1rem' }}>Accesos rápidos</p>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              {[{ label: 'Nuevo Proyecto', href: '/admin/proyectos', icon: 'bi-plus-circle' }, { label: 'Audit Log', href: '/admin/audit-log', icon: 'bi-journal-text' }, { label: 'Ver sitio', href: '/', icon: 'bi-box-arrow-up-right' }].map(l => (
-                <a key={l.label} href={l.href} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.4rem', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.55)', textDecoration: 'none', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.12em', transition: 'all 0.2s' }} onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }} onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.14)'; el.style.color = 'rgba(255,255,255,0.55)'; }}>
+              {[
+                { label: 'Nuevo Proyecto', href: '/admin/proyectos', icon: 'bi-plus-circle'        },
+                { label: 'Nosotros',       href: '/admin/nosotros',  icon: 'bi-person-lines-fill'  },
+                { label: 'Audit Log',      href: '/admin/audit-log', icon: 'bi-journal-text'       },
+                { label: 'Ver sitio',      href: '/',                icon: 'bi-box-arrow-up-right' },
+              ].map(l => (
+                <a key={l.label} href={l.href}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.4rem', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.55)', textDecoration: 'none', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.12em', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.14)'; el.style.color = 'rgba(255,255,255,0.55)'; }}>
                   <i className={`bi ${l.icon}`} /> {l.label}
                 </a>
               ))}

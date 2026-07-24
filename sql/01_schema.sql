@@ -29,10 +29,25 @@ CREATE TABLE IF NOT EXISTS project_images (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
+-- 3. About blocks table (for Nosotros page)
+CREATE TABLE IF NOT EXISTS about_blocks (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  block_type   TEXT NOT NULL,
+  title        TEXT,
+  subtitle     TEXT,
+  content      JSONB DEFAULT '{}'::jsonb,
+  sort_order   INTEGER DEFAULT 0,
+  is_active    BOOLEAN DEFAULT true,
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  updated_at   TIMESTAMPTZ DEFAULT now()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS project_images_project_id_idx ON project_images(project_id);
 CREATE INDEX IF NOT EXISTS project_images_is_primary_idx ON project_images(project_id, is_primary);
 CREATE INDEX IF NOT EXISTS projects_slug_idx ON projects(slug);
+CREATE INDEX IF NOT EXISTS about_blocks_sort_order_idx ON about_blocks(sort_order);
+CREATE INDEX IF NOT EXISTS about_blocks_is_active_idx ON about_blocks(is_active);
 
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -48,6 +63,7 @@ CREATE TRIGGER projects_updated_at
 -- ── RLS ─────────────────────────────────────────────────
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE about_blocks ENABLE ROW LEVEL SECURITY;
 
 -- Public: read only
 CREATE POLICY "Public read projects"
@@ -56,6 +72,9 @@ CREATE POLICY "Public read projects"
 CREATE POLICY "Public read images"
   ON project_images FOR SELECT TO anon USING (true);
 
+CREATE POLICY "Public read about blocks"
+  ON about_blocks FOR SELECT TO anon USING (is_active = true);
+
 -- Authenticated: full access
 CREATE POLICY "Auth all projects"
   ON projects FOR ALL TO authenticated
@@ -63,4 +82,8 @@ CREATE POLICY "Auth all projects"
 
 CREATE POLICY "Auth all images"
   ON project_images FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
+
+CREATE POLICY "Auth all about blocks"
+  ON about_blocks FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
