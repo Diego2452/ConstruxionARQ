@@ -17,7 +17,7 @@ const STATS: { num: string; label: string; icon?: string; img?: string }[] = [
 ];
 
 const PANELS = [
-  { eyebrow: 'Nuestro portafolio de obra',       title: 'Proyectos', href: '/proyectos/', icon: 'bi-grid-3x3', align: 'left',  stat: { num: '+19',  label: 'proyectos documentados'    } },
+  { eyebrow: 'Nuestro portafolio de obra',      title: 'Proyectos', href: '/proyectos/', icon: 'bi-grid-3x3', align: 'left',  stat: { num: '+19',  label: 'proyectos documentados'    } },
   { eyebrow: 'Quiénes somos y qué nos mueve',    title: 'Nosotros',  href: '/nosotros/',  icon: 'bi-people',   align: 'right', stat: { num: '1990', label: 'fundación del equipo'        } },
   { eyebrow: 'Hablemos de tu próximo proyecto',  title: 'Contactar', href: '/contactar/', icon: 'bi-chat-dots',align: 'left',  stat: { num: '100%', label: 'compromiso con el cliente'    } },
 ];
@@ -185,7 +185,15 @@ export default function HomePage() {
           className="stats-grid"
         >
           {STATS.map((s, i) => (
-            <div key={i} className="stat-subcard reveal" style={{ transitionDelay: `${i * 0.1}s` }}>
+            <div key={i} className="stat-subcard reveal" style={{ 
+              transitionDelay: `${i * 0.1}s`,
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              textAlign: 'center',
+              height: '100%' // Asegura que ocupe todo el espacio de la grid card
+            }}>
               {/* Icon: Bootstrap icon OR custom PNG */}
               {s.img ? (
                 <img

@@ -29,7 +29,7 @@ type Segment =
 function tokenize(input: string): Segment[] {
   const segments: Segment[] = [];
   // Order matters — longer patterns first
-  const pattern = /(\*\*(.+?)\*\*)|(\[r\]\*(.+?)\*\[\/r\])|(\*\[r\](.+?)\[\/r\]\*)|(\[r\](.+?)\[\/r\])|(\*(.+?)\*)|(\_\_(.+?)\_\_)|(~~(.+?)~~)|(\[w\](.+?)\[\/w\])/gs;
+  const pattern = /(\*\*([\s\S]+?)\*\*)|(\[r\]\*([\s\S]+?)\*\[\/r\])|(\*\[r\]([\s\S]+?)\[\/r\]\*)|(\[r\]([\s\S]+?)\[\/r\])|(\*([\s\S]+?)\*)|(\_\_([\s\S]+?)\_\_)|(~~([\s\S]+?)~~)|(\[w\]([\s\S]+?)\[\/w\])/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -98,10 +98,10 @@ export function renderTextMarkup(text: string): React.ReactNode {
  */
 export function stripMarkup(text: string): string {
   return text
-    .replace(/\*\*(.+?)\*\*/gs, '$1')
-    .replace(/\*(.+?)\*/gs, '$1')
-    .replace(/__(.+?)__/gs, '$1')
-    .replace(/~~(.+?)~~/gs, '$1')
-    .replace(/\[r\](.+?)\[\/r\]/gs, '$1')
-    .replace(/\[w\](.+?)\[\/w\]/gs, '$1');
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+    .replace(/\*([\s\S]+?)\*/g, '$1')
+    .replace(/__([\s\S]+?)__/g, '$1')
+    .replace(/~~([\s\S]+?)~~/g, '$1')
+    .replace(/\[r\]([\s\S]+?)\[\/r\]/g, '$1')
+    .replace(/\[w\]([\s\S]+?)\[\/w\]/g, '$1');
 }
