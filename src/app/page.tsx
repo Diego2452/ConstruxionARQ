@@ -54,17 +54,18 @@ export default function HomePage() {
 
   // Fetch project images (all, shuffle)
   useEffect(() => {
-    supabase
-      .from('project_images')
-      .select('src, media_type')
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase.from('project_images').select('src, media_type');
         const imgs = (data ?? [])
           .filter((i: { media_type?: string }) => !i.media_type || i.media_type === 'image')
           .map((i: { src: string }) => i.src)
           .filter(Boolean);
         setHeroImages(imgs.length >= 3 ? shuffle(imgs) : FALLBACK);
-      })
-      .catch(() => setHeroImages(FALLBACK));
+      } catch {
+        setHeroImages(FALLBACK);
+      }
+    })();
   }, []);
 
   // Fetch real project count

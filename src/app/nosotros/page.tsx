@@ -225,9 +225,14 @@ export default function NosotrosPage() {
 
   useEffect(() => {
     let active = true;
-    supabase.from('about_blocks').select('*').eq('is_active', true).order('sort_order')
-      .then(({ data }) => { if (active && data) setBlocks(data as AboutBlock[]); })
-      .finally(() => { if (active) setLoading(false); });
+    (async () => {
+      try {
+        const { data } = await supabase.from('about_blocks').select('*').eq('is_active', true).order('sort_order');
+        if (active && data) setBlocks(data as AboutBlock[]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => { active = false; };
   }, []);
 

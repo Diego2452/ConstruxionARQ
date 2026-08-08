@@ -25,14 +25,16 @@ export default function ProjectTemplate() {
     const slug  = parts[parts.length - 1];
     if (!slug || slug === '_template') { setState('notfound'); return; }
 
-    supabase.from('projects').select('*, project_images(*)')
-      .eq('slug', slug).single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase.from('projects').select('*, project_images(*)').eq('slug', slug).single();
         if (!data) { setState('notfound'); return; }
         setProject(data);
         setState('found');
-      })
-      .catch(() => setState('notfound'));
+      } catch {
+        setState('notfound');
+      }
+    })();
   }, []);
 
   if (state === 'loading') return (
