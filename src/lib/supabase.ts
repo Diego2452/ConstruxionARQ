@@ -14,22 +14,24 @@ export interface DBImage {
   caption:     string | null;
   is_primary:  boolean;
   sort_order:  number;
-  media_type?: 'image' | 'video';   // ← nuevo
+  media_type?: 'image' | 'video';
 }
 
 export interface DBProject {
-  id:             string;
-  slug:           string;
-  title:          string;
-  location:       string | null;
-  manager:        string | null;
-  architect:      string | null;
-  dimensions:     string | null;
-  description:    string | null;
-  year:           string | null;
-  category:       string | null;
-  created_at:     string;
-  updated_at:     string;
+  id:              string;
+  slug:            string;
+  title:           string;
+  title_en?:       string | null;   // ← traducción EN
+  location:        string | null;
+  manager:         string | null;
+  architect:       string | null;
+  dimensions:      string | null;
+  description:     string | null;
+  description_en?: string | null;   // ← traducción EN
+  year:            string | null;
+  category:        string | null;
+  created_at:      string;
+  updated_at:      string;
   project_images?: DBImage[];
 }
 
@@ -65,7 +67,6 @@ export function getPrimaryImage(project: DBProject): DBImage | undefined {
   return project.project_images?.find(i => i.is_primary) ?? project.project_images?.[0];
 }
 
-// ── Detectar tipo de media por URL (fallback para datos viejos) ──
 export function detectMediaType(url: string): 'image' | 'video' {
   if (/\.(mp4|webm|ogg|mov|avi|mkv)(\?.*)?$/i.test(url)) return 'video';
   return 'image';

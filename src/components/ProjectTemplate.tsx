@@ -4,9 +4,21 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import ProjectContent from '@/components/ProjectContent';
 
+interface DBImg {
+  src: string; alt: string; caption: string | null;
+  is_primary: boolean; sort_order: number; media_type?: string;
+}
+interface DBProject {
+  slug: string; title: string; title_en?: string | null;
+  description: string | null; description_en?: string | null;
+  location: string | null; architect: string | null;
+  manager: string | null; dimensions: string | null; year: string | null;
+  project_images: DBImg[];
+}
+
 export default function ProjectTemplate() {
   const [state,   setState]   = useState<'loading' | 'found' | 'notfound'>('loading');
-  const [project, setProject] = useState<Record<string, unknown> | null>(null);
+  const [project, setProject] = useState<DBProject | null>(null);
 
   useEffect(() => {
     const parts = window.location.pathname.replace(/\/$/, '').split('/').filter(Boolean);
@@ -15,11 +27,12 @@ export default function ProjectTemplate() {
 
     supabase.from('projects').select('*, project_images(*)')
       .eq('slug', slug).single()
-      .then(({ data, error }) => {
-        if (error || !data) { setState('notfound'); return; }
+      .then(({ data }) => {
+        if (!data) { setState('notfound'); return; }
         setProject(data);
         setState('found');
-      });
+      })
+      .catch(() => setState('notfound'));
   }, []);
 
   if (state === 'loading') return (
@@ -38,27 +51,26 @@ export default function ProjectTemplate() {
     </div>
   );
 
-  const images = [...((project.project_images as unknown[]) ?? [])].sort((a: unknown, b: unknown) => {
-    const ai = a as { is_primary: boolean; sort_order: number };
-    const bi = b as { is_primary: boolean; sort_order: number };
-    if (ai.is_primary && !bi.is_primary) return -1;
-    if (!ai.is_primary && bi.is_primary) return 1;
-    return (ai.sort_order ?? 0) - (bi.sort_order ?? 0);
-  }) as Array<{ src: string; alt: string; caption: string | null; is_primary: boolean; media_type?: string }>;
-
+  const images = [...(project.project_images ?? [])].sort((a, b) => {
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
   const primary = images.find(i => i.is_primary) ?? images[0];
 
   return (
     <ProjectContent
-      slug={project.slug as string}
-      title={project.title as string}
-      description={(project.description as string) ?? undefined}
+      slug={project.slug}
+      title={project.title}
+      title_en={project.title_en ?? undefined}
+      description={project.description ?? undefined}
+      description_en={project.description_en ?? undefined}
       thumbnail={primary?.src ?? ''}
-      location={(project.location as string) ?? undefined}
-      architect={(project.architect as string) ?? undefined}
-      manager={(project.manager as string) ?? undefined}
-      dimensions={(project.dimensions as string) ?? undefined}
-      year={(project.year as string) ?? undefined}
+      location={project.location ?? undefined}
+      architect={project.architect ?? undefined}
+      manager={project.manager ?? undefined}
+      dimensions={project.dimensions ?? undefined}
+      year={project.year ?? undefined}
       images={images.map(img => ({
         src: img.src, alt: img.alt,
         caption: img.caption ?? undefined,

@@ -4,9 +4,7 @@ import AdminGuard from '@/components/admin/AdminGuard';
 import { supabase } from '@/lib/supabase';
 import { logAction } from '@/lib/audit';
 
-// ── Types ─────────────────────────────────────────────────
 type BlockType = 'text-image' | 'image-text' | 'bullets-image' | 'image-bullets' | 'team' | 'carousel';
-
 interface AboutBlock {
   id: string;
   block_type: BlockType;
@@ -16,20 +14,17 @@ interface AboutBlock {
   sort_order: number;
   is_active: boolean;
 }
-
 type MediaType = 'image' | 'video';
 
-// ── Block type metadata ───────────────────────────────────
 const BLOCK_TYPES: { type: BlockType; label: string; icon: string; desc: string; layout: string }[] = [
-  { type: 'text-image',    label: 'Texto → Imagen',  icon: 'bi-layout-text-window-reverse', desc: 'Texto a la izquierda, imagen/video a la derecha', layout: '[T][📷]' },
-  { type: 'image-text',    label: 'Imagen → Texto',  icon: 'bi-layout-text-window',         desc: 'Imagen/video a la izquierda, texto a la derecha', layout: '[📷][T]' },
-  { type: 'bullets-image', label: 'Bullets → Imagen',icon: 'bi-list-ul',                    desc: 'Lista bullet (der) a izquierda, imagen a derecha', layout: '[•••][📷]' },
-  { type: 'image-bullets', label: 'Imagen → Bullets', icon: 'bi-card-list',                 desc: 'Imagen a izquierda, lista bullet (izq) a derecha', layout: '[📷][•••]' },
-  { type: 'team',          label: 'Equipo',           icon: 'bi-people',                     desc: 'Grid de tarjetas de miembros del equipo', layout: '[👤][👤][👤]' },
-  { type: 'carousel',      label: 'Carrusel',         icon: 'bi-images',                     desc: 'Carrusel animado de imágenes/logos', layout: '[←→→→]' },
+  { type: 'text-image',    label: 'Texto → Imagen',   icon: 'bi-layout-text-window-reverse', desc: 'Texto a la izquierda, imagen/video a la derecha', layout: '[T][📷]'     },
+  { type: 'image-text',    label: 'Imagen → Texto',   icon: 'bi-layout-text-window',         desc: 'Imagen/video a la izquierda, texto a la derecha', layout: '[📷][T]'     },
+  { type: 'bullets-image', label: 'Bullets → Imagen', icon: 'bi-list-ul',                    desc: 'Lista bullet a izquierda, imagen a derecha',      layout: '[•••][📷]'  },
+  { type: 'image-bullets', label: 'Imagen → Bullets', icon: 'bi-card-list',                  desc: 'Imagen a izquierda, lista bullet a derecha',      layout: '[📷][•••]'  },
+  { type: 'team',          label: 'Equipo',            icon: 'bi-people',                     desc: 'Grid de tarjetas de miembros del equipo',         layout: '[👤][👤][👤]'},
+  { type: 'carousel',      label: 'Carrusel',          icon: 'bi-images',                     desc: 'Carrusel animado de imágenes/logos',              layout: '[←→→→]'     },
 ];
 
-// ── Styles ────────────────────────────────────────────────
 const inp: React.CSSProperties = { width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: "'Roboto', sans-serif", fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s' };
 const lbl: React.CSSProperties = { fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.4rem' };
 const btnRed: React.CSSProperties = { padding: '0.7rem 1.6rem', background: '#C11D2A', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase' };
@@ -42,15 +37,12 @@ function FocusTA({ style, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaE
   return <textarea style={{ ...inp, minHeight: 90, resize: 'vertical', ...style }} {...props} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />;
 }
 
-// ── Media uploader ────────────────────────────────────────
 function MediaUpload({ src, mediaType, onSrc, onType, label }: {
-  src: string; mediaType: MediaType;
-  onSrc: (s: string) => void; onType: (t: MediaType) => void; label?: string;
+  src: string; mediaType: MediaType; onSrc: (s: string) => void; onType: (t: MediaType) => void; label?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState('');
-
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true); setErr('');
@@ -60,13 +52,9 @@ function MediaUpload({ src, mediaType, onSrc, onType, label }: {
     const { error } = await supabase.storage.from(bucket).upload(name, file, { upsert: true, contentType: file.type });
     if (error) { setErr(error.message); setUploading(false); return; }
     const { data } = supabase.storage.from(bucket).getPublicUrl(name);
-    onSrc(data.publicUrl);
-    setUploading(false);
+    onSrc(data.publicUrl); setUploading(false);
     if (fileRef.current) fileRef.current.value = '';
   };
-
-  const accept = mediaType === 'video' ? 'video/*' : 'image/*';
-
   return (
     <div>
       {label && <label style={lbl}>{label}</label>}
@@ -79,16 +67,14 @@ function MediaUpload({ src, mediaType, onSrc, onType, label }: {
         ))}
       </div>
       <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'flex-start' }}>
-        {/* Preview */}
         <div style={{ width: 100, height: 66, background: '#111', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {uploading ? <i className="bi bi-arrow-repeat" style={{ color: '#C11D2A', animation: 'spin 1s linear infinite' }} /> : src ? (
-            mediaType === 'video' ? <video src={src} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={src} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : <i className={`bi ${mediaType === 'video' ? 'bi-camera-video' : 'bi-image'}`} style={{ color: '#333', fontSize: '1.2rem' }} />}
+          {uploading ? <i className="bi bi-arrow-repeat" style={{ color: '#C11D2A', animation: 'spin 1s linear infinite' }} />
+            : src ? (mediaType === 'video' ? <video src={src} muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={src} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />)
+            : <i className={`bi ${mediaType === 'video' ? 'bi-camera-video' : 'bi-image'}`} style={{ color: '#333', fontSize: '1.2rem' }} />}
         </div>
         <div style={{ flex: 1 }}>
-          <input ref={fileRef} type="file" accept={accept} style={{ display: 'none' }} onChange={handleFile} />
-          <button onClick={() => fileRef.current?.click()} disabled={uploading}
-            style={{ ...btnGhost, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.68rem', padding: '0.5rem 0.8rem', marginBottom: '0.4rem' }}>
+          <input ref={fileRef} type="file" accept={mediaType === 'video' ? 'video/*' : 'image/*'} style={{ display: 'none' }} onChange={handleFile} />
+          <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ ...btnGhost, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.68rem', padding: '0.5rem 0.8rem', marginBottom: '0.4rem' }}>
             <i className="bi bi-upload" /> {uploading ? 'Subiendo…' : src ? 'Reemplazar' : `Subir ${mediaType === 'video' ? 'video' : 'imagen'}`}
           </button>
           <FocusInp value={src} placeholder="O pegar URL" onChange={e => onSrc(e.target.value)} style={{ fontSize: '0.78rem', padding: '0.4rem 0.6rem' }} />
@@ -99,18 +85,11 @@ function MediaUpload({ src, mediaType, onSrc, onType, label }: {
   );
 }
 
-// ── Block-specific forms ──────────────────────────────────
 function TextImageForm({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   const set = (k: string, v: unknown) => onChange({ ...content, [k]: v });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div><label style={lbl}>Texto del bloque</label><FocusTA value={(content.text as string) || ''} placeholder="Párrafo de texto…" onChange={e => set('text', e.target.value)} style={{ minHeight: 120 }} /></div>
-      <div style={{ background: 'rgba(193,29,42,0.08)', border: '1px solid rgba(193,29,42,0.15)', padding: '0.8rem', borderRadius: '2px' }}>
-        <p style={{ ...lbl, margin: '0 0 0.5rem 0' }}>Formato de texto disponible:</p>
-        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, margin: 0 }}>
-          <code>/B texto /B</code> (negrita) • <code>/I texto /I</code> (itálica) • <code>/R texto /R</code> (rojo) • <code>/W texto /W</code> (blanco) • <code>/U texto /U</code> (subrayado) • <code>/S texto /S</code> (tachado)
-        </p>
-      </div>
       <MediaUpload label="Imagen / Video" src={(content.image_src as string) || ''} mediaType={(content.media_type as MediaType) || 'image'} onSrc={s => set('image_src', s)} onType={t => set('media_type', t)} />
       <div><label style={lbl}>Alt text (opcional)</label><FocusInp value={(content.image_alt as string) || ''} placeholder="Descripción de la imagen" onChange={e => set('image_alt', e.target.value)} /></div>
       <div><label style={lbl}>Caption (opcional)</label><FocusInp value={(content.image_caption as string) || ''} placeholder="Pie de imagen" onChange={e => set('image_caption', e.target.value)} /></div>
@@ -118,55 +97,28 @@ function TextImageForm({ content, onChange }: { content: Record<string, unknown>
   );
 }
 
-// Common Bootstrap icon options for bullets
-const ICON_OPTIONS = [
-  'bi-check2-circle', 'bi-check2', 'bi-star-fill', 'bi-dot', 'bi-dash-circle-fill',
-  'bi-file-earmark-text', 'bi-currency-dollar', 'bi-map', 'bi-building-check', 'bi-tools',
-  'bi-diagram-3', 'bi-rulers', 'bi-person-badge', 'bi-hammer', 'bi-pencil-square'
-];
+const ICON_OPTIONS = ['bi-check2-circle','bi-check2','bi-star-fill','bi-dot','bi-dash-circle-fill','bi-file-earmark-text','bi-currency-dollar','bi-map','bi-building-check','bi-tools','bi-diagram-3','bi-rulers','bi-person-badge','bi-hammer','bi-pencil-square'];
 
 function BulletsImageForm({ content, onChange }: { content: Record<string, unknown>; onChange: (c: Record<string, unknown>) => void }) {
   type BulletItem = { text: string; icon_class?: string };
   const bulletsRaw = (content.bullets as (string | BulletItem)[]) || [''];
-  const bullets: BulletItem[] = bulletsRaw.map(b => 
-    typeof b === 'string' ? { text: b, icon_class: 'bi-check2-circle' } : b
-  );
-  
+  const bullets: BulletItem[] = bulletsRaw.map(b => typeof b === 'string' ? { text: b, icon_class: 'bi-check2-circle' } : b);
   const setBullets = (b: BulletItem[]) => onChange({ ...content, bullets: b });
   const set = (k: string, v: unknown) => onChange({ ...content, [k]: v });
-  
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
         <label style={lbl}>Bullets <span style={{ color: '#C11D2A' }}>*</span></label>
         {bullets.map((b, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '0.5rem', marginBottom: '0.4rem', alignItems: 'start' }}>
-            <FocusInp 
-              value={b.text} 
-              placeholder={`Bullet ${i + 1}`} 
-              onChange={e => { const n = [...bullets]; n[i].text = e.target.value; setBullets(n); }} 
-            />
-            <select 
-              value={b.icon_class || 'bi-check2-circle'} 
-              onChange={e => { const n = [...bullets]; n[i].icon_class = e.target.value; setBullets(n); }}
-              style={{ ...inp, fontSize: '0.75rem', padding: '0.65rem 0.6rem' }}
-            >
-              {ICON_OPTIONS.map(icon => (
-                <option key={icon} value={icon}>
-                  <i className={`bi ${icon}`} /> {icon.replace('bi-', '')}
-                </option>
-              ))}
+            <FocusInp value={b.text} placeholder={`Bullet ${i + 1}`} onChange={e => { const n = [...bullets]; n[i].text = e.target.value; setBullets(n); }} />
+            <select value={b.icon_class || 'bi-check2-circle'} onChange={e => { const n = [...bullets]; n[i].icon_class = e.target.value; setBullets(n); }} style={{ ...inp, fontSize: '0.75rem', padding: '0.65rem 0.6rem' }}>
+              {ICON_OPTIONS.map(icon => <option key={icon} value={icon}>{icon.replace('bi-', '')}</option>)}
             </select>
             {bullets.length > 1 && <button onClick={() => setBullets(bullets.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.6)', cursor: 'pointer', fontSize: '1rem', gridColumn: '1 / -1' }}><i className="bi bi-trash" /> Eliminar</button>}
           </div>
         ))}
         <button onClick={() => setBullets([...bullets, { text: '', icon_class: 'bi-check2-circle' }])} style={{ ...btnGhost, fontSize: '0.68rem', padding: '0.4rem 0.8rem', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><i className="bi bi-plus-lg" /> Agregar bullet</button>
-      </div>
-      <div style={{ background: 'rgba(193,29,42,0.08)', border: '1px solid rgba(193,29,42,0.15)', padding: '0.8rem', borderRadius: '2px' }}>
-        <p style={{ ...lbl, margin: '0 0 0.5rem 0' }}>Formato de texto disponible:</p>
-        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, margin: 0 }}>
-          <code>/B texto /B</code> (negrita) • <code>/I texto /I</code> (itálica) • <code>/R texto /R</code> (rojo) • <code>/W texto /W</code> (blanco) • <code>/U texto /U</code> (subrayado) • <code>/S texto /S</code> (tachado)
-        </p>
       </div>
       <MediaUpload label="Imagen / Video" src={(content.image_src as string) || ''} mediaType={(content.media_type as MediaType) || 'image'} onSrc={s => set('image_src', s)} onType={t => set('media_type', t)} />
       <div><label style={lbl}>Alt text (opcional)</label><FocusInp value={(content.image_alt as string) || ''} placeholder="Descripción" onChange={e => set('image_alt', e.target.value)} /></div>
@@ -179,7 +131,6 @@ function TeamForm({ content, onChange }: { content: Record<string, unknown>; onC
   const members: Member[] = (content.members as Member[]) || [{ name: '', role: '', bio: '', photo_src: '', photo_alt: '', photo_type: 'image' }];
   const setMembers = (m: Member[]) => onChange({ ...content, members: m });
   const setM = (i: number, k: keyof Member, v: string) => { const n = [...members]; n[i] = { ...n[i], [k]: v }; setMembers(n); };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {members.map((m, i) => (
@@ -192,19 +143,12 @@ function TeamForm({ content, onChange }: { content: Record<string, unknown>; onC
             <div><label style={lbl}>Nombre <span style={{ color: '#C11D2A' }}>*</span></label><FocusInp value={m.name} placeholder="Nombre completo" onChange={e => setM(i, 'name', e.target.value)} /></div>
             <div><label style={lbl}>Rol / Énfasis <span style={{ color: '#C11D2A' }}>*</span></label><FocusInp value={m.role} placeholder="Ej: Director General" onChange={e => setM(i, 'role', e.target.value)} /></div>
           </div>
-          <div style={{ marginBottom: '0.8rem' }}><label style={lbl}>Biografía / Descripción (opcional)</label><FocusTA value={m.bio} placeholder="Descripción del miembro…" onChange={e => setM(i, 'bio', e.target.value)} style={{ minHeight: 80 }} /></div>
-          <div style={{ background: 'rgba(193,29,42,0.08)', border: '1px solid rgba(193,29,42,0.15)', padding: '0.6rem', borderRadius: '2px', marginBottom: '0.8rem' }}>
-            <p style={{ ...lbl, margin: '0 0 0.3rem 0', fontSize: '0.6rem' }}>Formato de texto en bio:</p>
-            <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, margin: 0 }}>
-              <code>/B txt /B</code> • <code>/I txt /I</code> • <code>/R txt /R</code> • <code>/W txt /W</code> • <code>/U txt /U</code> • <code>/S txt /S</code>
-            </p>
-          </div>
+          <div style={{ marginBottom: '0.8rem' }}><label style={lbl}>Biografía (opcional)</label><FocusTA value={m.bio} placeholder="Descripción del miembro…" onChange={e => setM(i, 'bio', e.target.value)} style={{ minHeight: 80 }} /></div>
           <MediaUpload label="Foto de perfil" src={m.photo_src} mediaType={m.photo_type || 'image'} onSrc={s => setM(i, 'photo_src', s)} onType={t => { const n = [...members]; n[i] = { ...n[i], photo_type: t }; setMembers(n); }} />
           <div style={{ marginTop: '0.6rem' }}><label style={lbl}>Alt text foto (opcional)</label><FocusInp value={m.photo_alt} placeholder="Nombre del miembro" onChange={e => setM(i, 'photo_alt', e.target.value)} /></div>
         </div>
       ))}
-      <button onClick={() => setMembers([...members, { name: '', role: '', bio: '', photo_src: '', photo_alt: '', photo_type: 'image' }])}
-        style={{ ...btnGhost, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' }}>
+      <button onClick={() => setMembers([...members, { name: '', role: '', bio: '', photo_src: '', photo_alt: '', photo_type: 'image' }])} style={{ ...btnGhost, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' }}>
         <i className="bi bi-person-plus" /> Agregar miembro
       </button>
     </div>
@@ -216,12 +160,9 @@ function CarouselForm({ content, onChange }: { content: Record<string, unknown>;
   const items: CarItem[] = (content.items as CarItem[]) || [{ src: '', alt: '', name: '', media_type: 'image' }];
   const setItems = (it: CarItem[]) => onChange({ ...content, items: it });
   const setI = (i: number, k: keyof CarItem, v: string) => { const n = [...items]; n[i] = { ...n[i], [k]: v }; setItems(n); };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-        Agregá imágenes o logos. El campo "Nombre" aparece debajo de cada elemento en el carrusel.
-      </p>
+      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>Agregá imágenes o logos. El "Nombre" aparece debajo de cada elemento.</p>
       {items.map((item, i) => (
         <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
@@ -233,28 +174,25 @@ function CarouselForm({ content, onChange }: { content: Record<string, unknown>;
           <div style={{ marginTop: '0.6rem' }}><label style={lbl}>Alt text (opcional)</label><FocusInp value={item.alt} placeholder="Descripción" onChange={e => setI(i, 'alt', e.target.value)} /></div>
         </div>
       ))}
-      <button onClick={() => setItems([...items, { src: '', alt: '', name: '', media_type: 'image' }])}
-        style={{ ...btnGhost, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' }}>
+      <button onClick={() => setItems([...items, { src: '', alt: '', name: '', media_type: 'image' }])} style={{ ...btnGhost, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' }}>
         <i className="bi bi-plus-lg" /> Agregar elemento
       </button>
     </div>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────
 export default function AdminNosotrosPage() {
   const [blocks,  setBlocks]  = useState<AboutBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [msg,     setMsg]     = useState('');
 
-  // Panel state
   const [panelOpen,    setPanelOpen]    = useState(false);
   const [editBlock,    setEditBlock]    = useState<AboutBlock | null>(null);
   const [typeSelector, setTypeSelector] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AboutBlock | null>(null);
 
-  // Form state
   const [blockName,  setBlockName]  = useState('');
   const [blockTitle, setBlockTitle] = useState('');
   const [blockSub,   setBlockSub]   = useState('');
@@ -270,37 +208,23 @@ export default function AdminNosotrosPage() {
   useEffect(() => { load(); }, [load]);
 
   const openNew = (type: BlockType) => {
-    setTypeSelector(false);
-    setEditBlock(null);
-    setBlockType(type);
-    setBlockName('');
-    setBlockTitle('');
-    setBlockSub('');
-    setContent({});
-    setMsg('');
+    setTypeSelector(false); setEditBlock(null); setBlockType(type);
+    setBlockName(''); setBlockTitle(''); setBlockSub(''); setContent(''); setMsg('');
     setPanelOpen(true);
   };
-
   const openEdit = (b: AboutBlock) => {
-    setEditBlock(b);
-    setBlockType(b.block_type);
-    setBlockName(b.title || '');
+    setEditBlock(b); setBlockType(b.block_type); setBlockName(b.title || '');
     setBlockTitle((b.content.section_title as string) || '');
     setBlockSub((b.content.section_subtitle as string) || '');
-    setContent(b.content);
-    setMsg('');
-    setPanelOpen(true);
+    setContent(b.content); setMsg(''); setPanelOpen(true);
   };
-
   const closePanel = () => { setPanelOpen(false); setMsg(''); };
 
   const handleSave = async () => {
     if (!blockName.trim()) { setMsg('⚠ El nombre identificador es requerido.'); return; }
     setSaving(true); setMsg('');
     const payload = {
-      block_type: blockType,
-      title: blockName.trim(),
-      subtitle: blockSub.trim() || null,
+      block_type: blockType, title: blockName.trim(), subtitle: blockSub.trim() || null,
       content: { ...content, section_title: blockTitle.trim(), section_subtitle: blockSub.trim() },
       is_active: true,
     };
@@ -315,9 +239,7 @@ export default function AdminNosotrosPage() {
         if (error) throw error;
         await logAction('project_created', `Se creó el bloque About "${blockName}" (${blockType})`, { entityType: 'about_block', entityName: blockName });
       }
-      await load();
-      setSaving(false);
-      setTimeout(closePanel, 400);
+      await load(); setSaving(false); setTimeout(closePanel, 400);
     } catch (e: unknown) {
       setMsg('Error: ' + (e instanceof Error ? e.message : 'desconocido'));
       setSaving(false);
@@ -327,24 +249,17 @@ export default function AdminNosotrosPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await supabase.from('about_blocks').delete().eq('id', deleteTarget.id);
-    setDeleteTarget(null);
-    await load();
+    setDeleteTarget(null); await load();
   };
-
   const toggleActive = async (b: AboutBlock) => {
-    await supabase.from('about_blocks').update({ is_active: !b.is_active }).eq('id', b.id);
-    await load();
+    await supabase.from('about_blocks').update({ is_active: !b.is_active }).eq('id', b.id); await load();
   };
-
   const moveBlock = async (idx: number, dir: -1 | 1) => {
-    const target = blocks[idx];
-    const swap   = blocks[idx + dir];
-    if (!swap) return;
+    const target = blocks[idx]; const swap = blocks[idx + dir]; if (!swap) return;
     await Promise.all([
       supabase.from('about_blocks').update({ sort_order: swap.sort_order }).eq('id', target.id),
       supabase.from('about_blocks').update({ sort_order: target.sort_order }).eq('id', swap.id),
-    ]);
-    await load();
+    ]); await load();
   };
 
   const meta = BLOCK_TYPES.find(t => t.type === blockType);
@@ -355,16 +270,13 @@ export default function AdminNosotrosPage() {
       <div style={{ paddingTop: 220, minHeight: '100vh', background: '#151515' }}>
         <div className="max-w-[1290px] mx-auto px-6 lg:px-10 py-14">
 
-          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <p className="section-eyebrow">Admin</p>
               <h1 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: 'clamp(1.6rem,3vw,2.4rem)', fontWeight: 200, letterSpacing: '0.08em', color: '#fff' }}>Nosotros — Bloques</h1>
               <div style={{ width: 36, height: 1.5, background: '#C11D2A', marginTop: '0.7rem' }} />
             </div>
-            <button style={btnRed} onClick={() => setTypeSelector(true)}>
-              <i className="bi bi-plus-lg" style={{ marginRight: '0.4rem' }} /> Nuevo Bloque
-            </button>
+            <button style={btnRed} onClick={() => setTypeSelector(true)}><i className="bi bi-plus-lg" style={{ marginRight: '0.4rem' }} /> Nuevo Bloque</button>
           </div>
 
           {loading ? <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Cargando bloques…</p> : (
@@ -376,54 +288,23 @@ export default function AdminNosotrosPage() {
                   <div key={b.id} style={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.06)', padding: '1rem 1.2rem', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)')}
                     onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)')}>
-
-                    {/* Order arrows */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', flexShrink: 0 }}>
-                      <button onClick={() => moveBlock(idx, -1)} disabled={idx === 0}
-                        style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: idx === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === 0 ? 'default' : 'pointer', width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { if (idx !== 0) { const el = e.currentTarget; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}}
-                        onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'rgba(255,255,255,0.1)'; el.style.color = 'rgba(255,255,255,0.5)'; }}>
-                        <i className="bi bi-chevron-up" />
-                      </button>
-                      <button onClick={() => moveBlock(idx, 1)} disabled={idx === blocks.length - 1}
-                        style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: idx === blocks.length - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === blocks.length - 1 ? 'default' : 'pointer', width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { if (idx !== blocks.length - 1) { const el = e.currentTarget; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}}
-                        onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'rgba(255,255,255,0.1)'; el.style.color = 'rgba(255,255,255,0.5)'; }}>
-                        <i className="bi bi-chevron-down" />
-                      </button>
+                      <button onClick={() => moveBlock(idx, -1)} disabled={idx === 0} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: idx === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === 0 ? 'default' : 'pointer', width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', transition: 'all 0.15s' }} onMouseEnter={e => { if (idx !== 0) { const el = e.currentTarget; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}} onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'rgba(255,255,255,0.1)'; el.style.color = 'rgba(255,255,255,0.5)'; }}><i className="bi bi-chevron-up" /></button>
+                      <button onClick={() => moveBlock(idx, 1)} disabled={idx === blocks.length - 1} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: idx === blocks.length - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)', cursor: idx === blocks.length - 1 ? 'default' : 'pointer', width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', transition: 'all 0.15s' }} onMouseEnter={e => { if (idx !== blocks.length - 1) { const el = e.currentTarget; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}} onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = 'rgba(255,255,255,0.1)'; el.style.color = 'rgba(255,255,255,0.5)'; }}><i className="bi bi-chevron-down" /></button>
                     </div>
-
-                    {/* Type icon */}
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(193,29,42,0.12)', border: '1px solid rgba(193,29,42,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <i className={`bi ${m?.icon ?? 'bi-square'}`} style={{ color: '#C11D2A', fontSize: '0.9rem' }} />
                     </div>
-
-                    {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: '#e0e0e0', fontSize: '0.9rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title || '(sin nombre)'}</p>
                       <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '0.2rem' }}>{m?.label ?? b.block_type}</p>
                     </div>
-
-                    {/* Active toggle */}
-                    <button onClick={() => toggleActive(b)}
-                      style={{ background: 'none', border: `1px solid ${b.is_active ? 'rgba(76,175,80,0.4)' : 'rgba(255,255,255,0.1)'}`, color: b.is_active ? '#4caf50' : 'rgba(255,255,255,0.25)', padding: '0.2rem 0.7rem', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'all 0.2s', flexShrink: 0 }}>
+                    <button onClick={() => toggleActive(b)} style={{ background: 'none', border: `1px solid ${b.is_active ? 'rgba(76,175,80,0.4)' : 'rgba(255,255,255,0.1)'}`, color: b.is_active ? '#4caf50' : 'rgba(255,255,255,0.25)', padding: '0.2rem 0.7rem', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'all 0.2s', flexShrink: 0 }}>
                       {b.is_active ? 'Visible' : 'Oculto'}
                     </button>
-
-                    {/* Actions */}
                     <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                      <button onClick={() => openEdit(b)}
-                        style={{ background: 'none', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.6)', padding: '0.3rem 0.8rem', cursor: 'pointer', fontSize: '0.72rem', transition: 'all 0.2s' }}
-                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }}
-                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = 'rgba(255,255,255,0.6)'; }}>
-                        <i className="bi bi-pencil" /> Editar
-                      </button>
-                      <button onClick={() => setDeleteTarget(b)}
-                        style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.6)', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '1rem', transition: 'color 0.2s' }}
-                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')}
-                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(193,29,42,0.6)')}>
-                        <i className="bi bi-trash" />
-                      </button>
+                      <button onClick={() => openEdit(b)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.6)', padding: '0.3rem 0.8rem', cursor: 'pointer', fontSize: '0.72rem', transition: 'all 0.2s' }} onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }} onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = 'rgba(255,255,255,0.6)'; }}><i className="bi bi-pencil" /> Editar</button>
+                      <button onClick={() => setDeleteTarget(b)} style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.6)', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '1rem', transition: 'color 0.2s' }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(193,29,42,0.6)')}><i className="bi bi-trash" /></button>
                     </div>
                   </div>
                 );
@@ -433,7 +314,7 @@ export default function AdminNosotrosPage() {
         </div>
       </div>
 
-      {/* ── Type selector modal ── */}
+      {/* ── Selector de tipo ── */}
       {typeSelector && (
         <>
           <div onClick={() => setTypeSelector(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 900 }} />
@@ -456,7 +337,7 @@ export default function AdminNosotrosPage() {
                     <span style={{ fontFamily: "'Roboto Flex',sans-serif", fontWeight: 300, color: '#fff', fontSize: '0.95rem' }}>{t.label}</span>
                   </div>
                   <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>{t.desc}</p>
-                  <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.5rem', fontFamily: 'monospace', letterSpacing: '0.05em' }}>{t.layout}</p>
+                  <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.5rem', fontFamily: 'monospace' }}>{t.layout}</p>
                 </button>
               ))}
             </div>
@@ -464,39 +345,31 @@ export default function AdminNosotrosPage() {
         </>
       )}
 
-      {/* ── Edit panel ── */}
+      {/* ── MODAL centrado de edición ── */}
       {panelOpen && (
         <>
-          <div onClick={closePanel} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 900 }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 700, background: '#111', zIndex: 901, overflowY: 'auto', boxShadow: '-4px 0 40px rgba(0,0,0,0.6)' }}>
+          <div onClick={closePanel} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 900 }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '94%', maxWidth: 740, maxHeight: '88vh', background: '#111', zIndex: 901, overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}>
 
             <div style={{ position: 'sticky', top: 0, background: '#111', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '1.2rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
               <div>
-                <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A' }}>
-                  {editBlock ? 'Editar' : 'Nuevo'} bloque — {meta?.label}
-                </p>
-                <h2 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: '1.2rem', fontWeight: 200, color: '#fff', letterSpacing: '0.06em', marginTop: '0.2rem' }}>
-                  {blockName || '(sin nombre)'}
-                </h2>
+                <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A' }}>{editBlock ? 'Editar' : 'Nuevo'} bloque — {meta?.label}</p>
+                <h2 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: '1.2rem', fontWeight: 200, color: '#fff', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{blockName || '(sin nombre)'}</h2>
               </div>
               <button onClick={closePanel} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
 
             <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-
-              {/* Identificador */}
               <div style={{ background: 'rgba(193,29,42,0.06)', border: '1px solid rgba(193,29,42,0.2)', padding: '1rem' }}>
-                <label style={{ ...lbl, color: '#C11D2A' }}>Nombre identificador del bloque <span style={{ color: '#C11D2A' }}>*</span></label>
-                <FocusInp value={blockName} placeholder="Ej: Quiénes somos, Equipo principal, Clientes…" onChange={e => setBlockName(e.target.value)} />
-                <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.3rem' }}>Solo visible en el panel de admin para identificar el bloque.</p>
+                <label style={{ ...lbl, color: '#C11D2A' }}>Nombre identificador <span style={{ color: '#C11D2A' }}>*</span></label>
+                <FocusInp value={blockName} placeholder="Ej: Quiénes somos, Equipo principal…" onChange={e => setBlockName(e.target.value)} />
+                <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.3rem' }}>Solo visible en el admin para identificar el bloque.</p>
               </div>
 
-              {/* Título y subtítulo de sección (opcional) */}
               <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A', borderBottom: '1px solid rgba(193,29,42,0.2)', paddingBottom: '0.5rem' }}>Encabezado de sección (opcional)</p>
               <div><label style={lbl}>Título visible en el sitio</label><FocusInp value={blockTitle} placeholder="Ej: Nuestro Equipo" onChange={e => setBlockTitle(e.target.value)} /></div>
               <div><label style={lbl}>Subtítulo</label><FocusTA value={blockSub} placeholder="Descripción breve…" onChange={e => setBlockSub(e.target.value)} style={{ minHeight: 60 }} /></div>
 
-              {/* Type-specific form */}
               <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A', borderBottom: '1px solid rgba(193,29,42,0.2)', paddingBottom: '0.5rem' }}>Contenido — {meta?.label}</p>
 
               {(blockType === 'text-image' || blockType === 'image-text') && <TextImageForm content={content} onChange={setContent} />}
@@ -515,7 +388,7 @@ export default function AdminNosotrosPage() {
         </>
       )}
 
-      {/* ── Delete confirm ── */}
+      {/* ── Confirmar borrar ── */}
       {deleteTarget && (
         <>
           <div onClick={() => setDeleteTarget(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 950 }} />

@@ -5,28 +5,48 @@ import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
 import ProjectGallery from '@/components/ProjectGallery';
 
-interface Image { src: string; alt: string; caption?: string; is_primary?: boolean; }
-interface Props {
-  slug: string;
-  title: string;
-  description?: string;
-  thumbnail: string;
-  location?: string;
-  architect?: string;
-  manager?: string;
-  dimensions?: string;
-  year?: string;
-  images: Image[];
+interface Image {
+  src: string;
+  alt: string;
+  caption?: string;
+  is_primary?: boolean;
+  media_type?: 'image' | 'video';
 }
 
-export default function ProjectContent({ slug, title, description, thumbnail, location, architect, manager, dimensions, year, images }: Props) {
+interface Props {
+  slug:            string;
+  title:           string;
+  title_en?:       string;       // ← traducción EN
+  description?:    string;
+  description_en?: string;       // ← traducción EN
+  thumbnail:       string;
+  location?:       string;
+  architect?:      string;
+  manager?:        string;
+  dimensions?:     string;
+  year?:           string;
+  images:          Image[];
+}
+
+export default function ProjectContent({
+  slug, title, title_en, description, description_en,
+  thumbnail, location, architect, manager, dimensions, year, images,
+}: Props) {
   const { lang } = useLang();
   const tr = t[lang].proyecto;
 
-  // Use translated title/description if available, fallback to DB values
+  // 1. EN dynamic fields (from Supabase title_en / description_en)
+  // 2. EN static fallback (from translations.ts — legacy hardcoded projects)
+  // 3. Spanish (DB default)
   const projTr = (t[lang].projects as Record<string, { title?: string; description?: string } | undefined>)[slug];
-  const displayTitle       = projTr?.title       ?? title;
-  const displayDescription = projTr?.description ?? description;
+
+  const displayTitle = lang === 'en' && title_en
+    ? title_en
+    : (projTr?.title ?? title);
+
+  const displayDescription = lang === 'en' && description_en
+    ? description_en
+    : (projTr?.description ?? description);
 
   const meta = [
     { label: tr.location,   value: location   },
@@ -39,35 +59,24 @@ export default function ProjectContent({ slug, title, description, thumbnail, lo
   useEffect(() => {
     const elements = document.querySelectorAll<HTMLElement>('.reveal');
     if (!elements.length) return;
-
     if (!('IntersectionObserver' in window)) {
       elements.forEach(el => el.classList.add('is-visible'));
       return;
     }
-
     const observer = new IntersectionObserver(
-      entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
-      },
+      entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('is-visible')),
       { threshold: 0.1 }
     );
-
     elements.forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
-  // Primary image first, then rest
   const sorted = [...images].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   const heroImg = sorted[0] ?? { src: thumbnail, alt: title };
 
   return (
     <div style={{ paddingTop: 200, minHeight: '100vh', background: '#151515' }}>
-
-      {/* ── Hero image ── */}
+      {/* ── Hero ── */}
       <div style={{ position: 'relative', width: '100%', height: '55vh', overflow: 'hidden' }}>
         <img
           src={heroImg.src}
@@ -90,20 +99,16 @@ export default function ProjectContent({ slug, title, description, thumbnail, lo
       {/* ── Content ── */}
       <div className="max-w-[1290px] mx-auto px-6 lg:px-10 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-12 mb-14">
-
           {/* Info panel */}
           <div className="reveal md:col-span-1">
             <div style={{ width: 40, height: 1.5, background: '#C11D2A', marginBottom: '1.5rem' }} />
             {meta.map(({ label, value }) => (
               <div key={label} style={{ marginBottom: '1.1rem' }}>
-                <p style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C11D2A', marginBottom: '0.2rem' }}>
-                  {label}
-                </p>
+                <p style={{ fontSize: '0.62rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C11D2A', marginBottom: '0.2rem' }}>{label}</p>
                 <p style={{ fontSize: '0.95rem', color: '#e8e8e8', fontWeight: 300 }}>{value}</p>
               </div>
             ))}
           </div>
-
           {/* Description */}
           {displayDescription && (
             <div className="reveal md:col-span-2">
@@ -117,7 +122,8 @@ export default function ProjectContent({ slug, title, description, thumbnail, lo
         <ProjectGallery images={sorted} />
 
         <div className="reveal mt-14">
-          <Link href="/proyectos/"
+          <Link
+            href="/proyectos/"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', transition: 'color 0.2s' }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')}
             onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)')}

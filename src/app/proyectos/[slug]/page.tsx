@@ -15,9 +15,8 @@ export async function generateStaticParams() {
   if (sb) {
     try {
       const { data } = await sb.from('projects').select('slug');
-      if (data && data.length > 0) {
+      if (data && data.length > 0)
         return [...data.map((p: { slug: string }) => ({ slug: p.slug })), { slug: '_template' }];
-      }
     } catch { /* fallthrough */ }
   }
   const { projects } = await import('@/data/projects');
@@ -48,8 +47,11 @@ export default async function ProjectPage({ params }: Props) {
 
         return (
           <ProjectContent
-            slug={project.slug} title={project.title}
+            slug={project.slug}
+            title={project.title}
+            title_en={project.title_en ?? undefined}
             description={project.description ?? undefined}
+            description_en={project.description_en ?? undefined}
             thumbnail={primary?.src ?? ''}
             location={project.location ?? undefined}
             architect={project.architect ?? undefined}
@@ -68,16 +70,21 @@ export default async function ProjectPage({ params }: Props) {
     } catch { /* fallthrough */ }
   }
 
+  // Fallback to static projects.ts
   const { projects } = await import('@/data/projects');
   const project = projects.find(p => p.slug === params.slug);
   if (!project) notFound();
+
   return (
     <ProjectContent
-      slug={project.slug} title={project.title}
+      slug={project.slug}
+      title={project.title}
       description={project.description}
       thumbnail={project.images?.[0]?.src ?? project.thumbnail}
-      location={project.location} architect={project.architect}
-      manager={project.manager} dimensions={project.dimensions}
+      location={project.location}
+      architect={project.architect}
+      manager={project.manager}
+      dimensions={project.dimensions}
       year={project.year}
       images={(project.images ?? []).map(img => ({ ...img, media_type: 'image' as const }))}
     />
