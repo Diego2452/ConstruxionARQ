@@ -3,21 +3,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import AdminGuard from '@/components/admin/AdminGuard';
 import { supabase, DBProject, getPrimaryImage, getProjects, detectMediaType } from '@/lib/supabase';
 import { logAction } from '@/lib/audit';
-
+import { CATEGORIES } from '@/data/categories';  // ← acá
 const PAGE_SIZE = 10;
 type MediaType = 'image' | 'video';
-
-// ── Categorías oficiales ──────────────────────────────────
-const CATEGORIES = [
-  'Residencia Unifamiliar',
-  'Residencia Multifamiliar',
-  'Residencial — Otros',
-  'Oficinas',
-  'Comercio',
-  'Institucional',
-  'Proyectos Varios',
-  'Próximos y Diseños',
-];
 
 interface MediaRow {
   id?:        string;
