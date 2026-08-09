@@ -10,17 +10,43 @@ function buildClient() {
   return createClient(url, key);
 }
 
+function normalizeSlug(slug: string) {
+  return slug
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/--+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function slugCandidates(slug: string) {
+  const normalized = normalizeSlug(slug);
+  return normalized === slug ? [slug] : [slug, normalized];
+}
+
 export async function generateStaticParams() {
   const sb = buildClient();
+  const slugs = new Set<string>();
+  const addCandidate = (slug: string) => slugCandidates(slug).forEach((candidate) => slugs.add(candidate));
+
   if (sb) {
     try {
       const { data } = await sb.from('projects').select('slug');
-      if (data && data.length > 0)
-        return [...data.map((p: { slug: string }) => ({ slug: p.slug })), { slug: '_template' }];
-    } catch { /* fallthrough */ }
+      if (data && data.length > 0) {
+        data.forEach((p: { slug: string }) => addCandidate(p.slug));
+        slugs.add('_template');
+        return Array.from(slugs).map((slug) => ({ slug }));
+      }
+    } catch {
+      /* fallthrough */
+    }
   }
+
   const { projects } = await import('@/data/projects');
-  return [...projects.map(p => ({ slug: p.slug })), { slug: '_template' }];
+  projects.forEach((p) => addCandidate(p.slug));
+  slugs.add('_template');
+  return Array.from(slugs).map((slug) => ({ slug }));
 }
 
 interface Props { params: { slug: string } }
@@ -29,13 +55,13 @@ export default async function ProjectPage({ params }: Props) {
   if (params.slug === '_template') return <ProjectTemplate />;
 
   const sb = buildClient();
+  const normalizedSlug = normalizeSlug(params.slug);
   if (sb) {
     try {
-      const { data: project } = await sb
-        .from('projects')
-        .select('*, project_images(*)')
-        .eq('slug', params.slug)
-        .single();
+      const query = sb.from('projects').select('*, project_images(*)');
+      const { data: project } = normalizedSlug !== params.slug
+        ? await query.in('slug', [params.slug, normalizedSlug]).single()
+        : await query.eq('slug', params.slug).single();
 
       if (project) {
         const images = [...(project.project_images ?? [])].sort((a: { is_primary: boolean; sort_order: number }, b: { is_primary: boolean; sort_order: number }) => {
@@ -59,7 +85,8 @@ export default async function ProjectPage({ params }: Props) {
             dimensions={project.dimensions ?? undefined}
             year={project.year ?? undefined}
             images={images.map((img: { src: string; alt: string; caption: string | null; is_primary: boolean; media_type?: string }) => ({
-              src: img.src, alt: img.alt,
+              src: img.src,
+              alt: img.alt,
               caption: img.caption ?? undefined,
               is_primary: img.is_primary,
               media_type: (img.media_type ?? 'image') as 'image' | 'video',
@@ -67,12 +94,15 @@ export default async function ProjectPage({ params }: Props) {
           />
         );
       }
-    } catch { /* fallthrough */ }
+    } catch {
+      /* fallthrough */
+    }
   }
 
-  // Fallback to static projects.ts
   const { projects } = await import('@/data/projects');
-  const project = projects.find(p => p.slug === params.slug);
+  const project = projects.find(
+    (p) => p.slug === params.slug || normalizeSlug(p.slug) === normalizedSlug
+  );
   if (!project) notFound();
 
   return (
@@ -86,7 +116,7 @@ export default async function ProjectPage({ params }: Props) {
       manager={project.manager}
       dimensions={project.dimensions}
       year={project.year}
-      images={(project.images ?? []).map(img => ({ ...img, media_type: 'image' as const }))}
+      images={(project.images ?? []).map((img) => ({ ...img, media_type: 'image' as const }))}
     />
   );
 }

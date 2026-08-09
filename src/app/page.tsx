@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
@@ -24,7 +24,6 @@ const FALLBACK = [
   'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&auto=format&q=80',
-  'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1920&auto=format&q=80',
 ];
 
 export default function HomePage() {
@@ -37,89 +36,58 @@ export default function HomePage() {
   const [showSub, setShowSub] = useState(false);
 
   // ── Hero slideshow ─────────────────────────────────────
-  const [heroImages,    setHeroImages]    = useState<string[]>([]);
-  const [heroIdx,       setHeroIdx]       = useState(0);
-  const [heroFade,      setHeroFade]      = useState(true);
-  const [kbVariant,     setKbVariant]     = useState(1);
-
-  // ── Parallax mouse ─────────────────────────────────────
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  const rafRef = useRef<number | null>(null);
-  const targetMouse = useRef({ x: 0, y: 0 });
-  const currentMouse = useRef({ x: 0, y: 0 });
+  const [heroImages, setHeroImages] = useState<string[]>(FALLBACK);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroFade, setHeroFade] = useState(true);
 
   // ── Real stats ─────────────────────────────────────────
   const [projectCount, setProjectCount] = useState<number | null>(null);
   const years = yearsFrom1990();
 
-  // Fetch project images (all, shuffle)
+  // Fetch project primary images from Supabase
   useEffect(() => {
-    (async () => {
+    async function loadImages() {
       try {
-        const { data } = await supabase.from('project_images').select('src, media_type');
-        const imgs = (data ?? [])
-          .filter((i: { media_type?: string }) => !i.media_type || i.media_type === 'image')
-          .map((i: { src: string }) => i.src)
-          .filter(Boolean);
-        setHeroImages(imgs.length >= 3 ? shuffle(imgs) : FALLBACK);
+        const { data } = await supabase
+          .from('project_images')
+          .select('src')
+          .eq('is_primary', true)
+          .limit(10);
+        const imgs = (data ?? []).map((i: { src: string }) => i.src).filter(Boolean);
+        setHeroImages(imgs.length >= 2 ? imgs : FALLBACK);
       } catch {
         setHeroImages(FALLBACK);
       }
-    })();
+    }
+    void loadImages();
   }, []);
 
   // Fetch real project count
   useEffect(() => {
-    supabase.from('projects').select('*', { count: 'exact', head: true })
-      .then(({ count }) => setProjectCount(count ?? 0));
+    async function loadCount() {
+      try {
+        const { count } = await supabase.from('projects').select('*', { count: 'exact', head: true });
+        setProjectCount(count ?? 0);
+      } catch {
+        setProjectCount(0);
+      }
+    }
+
+    void loadCount();
   }, []);
 
-  // Auto-advance with RANDOM interval 2-4s
-  const scheduleNext = useCallback(() => {
+  // Auto-advance every 5s with crossfade
+  useEffect(() => {
     if (heroImages.length <= 1) return;
-    const delay = 2000 + Math.random() * 2000;
-    return setTimeout(() => {
+    const interval = setInterval(() => {
       setHeroFade(false);
       setTimeout(() => {
         setHeroIdx(i => (i + 1) % heroImages.length);
-        setKbVariant(v => (v % 3) + 1);
         setHeroFade(true);
       }, 700);
-    }, delay);
-  }, [heroImages.length]);
-
-  useEffect(() => {
-    const t = scheduleNext();
-    return () => { if (t) clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heroIdx, heroImages.length]);
-
-  // Smooth parallax with RAF
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      targetMouse.current = {
-        x: (e.clientX / window.innerWidth - 0.5) * 18,
-        y: (e.clientY / window.innerHeight - 0.5) * 12,
-      };
-    };
-    window.addEventListener('mousemove', onMove);
-
-    const animate = () => {
-      const dx = targetMouse.current.x - currentMouse.current.x;
-      const dy = targetMouse.current.y - currentMouse.current.y;
-      if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
-        currentMouse.current.x += dx * 0.06;
-        currentMouse.current.y += dy * 0.06;
-        setMouse({ x: currentMouse.current.x, y: currentMouse.current.y });
-      }
-      rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroImages]);
 
   // Typewriter
   useEffect(() => {
@@ -222,34 +190,22 @@ export default function HomePage() {
       ═══════════════════════════════════════════════════ */}
       <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: '#000', zIndex: 1 }}>
 
-        {/* Parallax wrapper — moves with mouse */}
-        <div style={{
-          position: 'absolute',
-          inset: '-6%',
-          width: '112%',
-          height: '112%',
-          transform: `translate(${mouse.x * -0.4}px, ${mouse.y * -0.4}px)`,
-          willChange: 'transform',
-        }}>
-          {heroImages.map((src, i) => (
-            <img
-              key={src}
-              src={src}
-              alt=""
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                opacity: i === heroIdx ? (heroFade ? 1 : 0) : 0,
-                transition: 'opacity 0.8s ease-in-out',
-                animation: i === heroIdx ? `kb-${kbVariant} 9s ease-in-out infinite` : 'none',
-                willChange: 'transform',
-              }}
-            />
-          ))}
-        </div>
+        {heroImages.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: i === heroIdx ? (heroFade ? 1 : 0) : 0,
+              transition: 'opacity 0.8s ease-in-out',
+            }}
+          />
+        ))}
 
         {/* Dark overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
@@ -273,7 +229,7 @@ export default function HomePage() {
             {typed.slice(0, 11)}<span style={{ color: '#C11D2A' }}>{typed.slice(11)}</span>
             {showCsr && <span className="typewriter-cursor" />}
           </h1>
-          <p style={{ marginTop: '1.5rem', fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.88)', fontWeight: 400, opacity: showSub ? 1 : 0, transform: showSub ? 'none' : 'translateY(12px)', transition: 'opacity 0.9s, transform 0.9s', textShadow: '0 1px 16px rgba(0,0,0,0.7)' }}>
+          <p style={{ marginTop: '1.5rem', fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.88)', fontWeight: 400, transition: 'opacity 0.9s, transform 0.9s', textShadow: '0 1px 16px rgba(0,0,0,0.7)' }}>
             {tr.tagline.line1} — {tr.tagline.line2} — {tr.tagline.since}
           </p>
           <button onClick={scrollToStats}
