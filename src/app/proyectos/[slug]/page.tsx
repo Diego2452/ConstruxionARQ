@@ -28,7 +28,7 @@ function slugCandidates(slug: string) {
 export async function generateStaticParams() {
   const sb = buildClient();
   const slugs = new Set<string>();
-  const addCandidate = (slug: string) => slugCandidates(slug).forEach((candidate) => slugs.add(candidate));
+  const addCandidate = (slug: string) => slugCandidates(slug).forEach(c => slugs.add(c));
 
   if (sb) {
     try {
@@ -36,17 +36,14 @@ export async function generateStaticParams() {
       if (data && data.length > 0) {
         data.forEach((p: { slug: string }) => addCandidate(p.slug));
         slugs.add('_template');
-        return Array.from(slugs).map((slug) => ({ slug }));
+        return Array.from(slugs).map(slug => ({ slug }));
       }
-    } catch {
-      /* fallthrough */
-    }
+    } catch { /* fallthrough */ }
   }
-
   const { projects } = await import('@/data/projects');
-  projects.forEach((p) => addCandidate(p.slug));
+  projects.forEach(p => addCandidate(p.slug));
   slugs.add('_template');
-  return Array.from(slugs).map((slug) => ({ slug }));
+  return Array.from(slugs).map(slug => ({ slug }));
 }
 
 interface Props { params: { slug: string } }
@@ -56,6 +53,7 @@ export default async function ProjectPage({ params }: Props) {
 
   const sb = buildClient();
   const normalizedSlug = normalizeSlug(params.slug);
+
   if (sb) {
     try {
       const query = sb.from('projects').select('*, project_images(*)');
@@ -64,11 +62,13 @@ export default async function ProjectPage({ params }: Props) {
         : await query.eq('slug', params.slug).single();
 
       if (project) {
-        const images = [...(project.project_images ?? [])].sort((a: { is_primary: boolean; sort_order: number }, b: { is_primary: boolean; sort_order: number }) => {
-          if (a.is_primary && !b.is_primary) return -1;
-          if (!a.is_primary && b.is_primary) return 1;
-          return (a.sort_order ?? 0) - (b.sort_order ?? 0);
-        });
+        const images = [...(project.project_images ?? [])].sort(
+          (a: { is_primary: boolean; sort_order: number }, b: { is_primary: boolean; sort_order: number }) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+          }
+        );
         const primary = images.find((i: { is_primary: boolean }) => i.is_primary) ?? images[0];
 
         return (
@@ -84,24 +84,27 @@ export default async function ProjectPage({ params }: Props) {
             manager={project.manager ?? undefined}
             dimensions={project.dimensions ?? undefined}
             year={project.year ?? undefined}
-            images={images.map((img: { src: string; alt: string; caption: string | null; is_primary: boolean; media_type?: string }) => ({
-              src: img.src,
-              alt: img.alt,
-              caption: img.caption ?? undefined,
+            images={images.map((img: {
+              src: string; alt: string; caption: string | null; caption_en?: string | null;
+              is_primary: boolean; media_type?: string;
+            }) => ({
+              src:        img.src,
+              alt:        img.alt,
+              caption:    img.caption    ?? undefined,
+              caption_en: img.caption_en ?? undefined,   // ← nuevo
               is_primary: img.is_primary,
               media_type: (img.media_type ?? 'image') as 'image' | 'video',
             }))}
           />
         );
       }
-    } catch {
-      /* fallthrough */
-    }
+    } catch { /* fallthrough */ }
   }
 
+  // Fallback estático
   const { projects } = await import('@/data/projects');
   const project = projects.find(
-    (p) => p.slug === params.slug || normalizeSlug(p.slug) === normalizedSlug
+    p => p.slug === params.slug || normalizeSlug(p.slug) === normalizedSlug
   );
   if (!project) notFound();
 
@@ -116,7 +119,7 @@ export default async function ProjectPage({ params }: Props) {
       manager={project.manager}
       dimensions={project.dimensions}
       year={project.year}
-      images={(project.images ?? []).map((img) => ({ ...img, media_type: 'image' as const }))}
+      images={(project.images ?? []).map(img => ({ ...img, media_type: 'image' as const }))}
     />
   );
 }

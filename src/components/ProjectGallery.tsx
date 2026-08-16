@@ -1,13 +1,15 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { detectMediaType } from '@/lib/supabase';
+import { useLang } from '@/contexts/LanguageContext';
 
 interface GalleryImage {
-  src:         string;
-  alt:         string;
-  caption?:    string;
-  is_primary?: boolean;
-  media_type?: 'image' | 'video';
+  src:          string;
+  alt:          string;
+  caption?:     string;
+  caption_en?:  string;       // ← caption en inglés
+  is_primary?:  boolean;
+  media_type?:  'image' | 'video';
 }
 
 function resolveType(img: GalleryImage): 'image' | 'video' {
@@ -15,12 +17,14 @@ function resolveType(img: GalleryImage): 'image' | 'video' {
 }
 
 export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
+  const { lang } = useLang();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const close = useCallback(() => setLightboxIdx(null), []);
   const prev  = useCallback(() => setLightboxIdx(i => i !== null ? (i - 1 + images.length) % images.length : null), [images.length]);
   const next  = useCallback(() => setLightboxIdx(i => i !== null ? (i + 1) % images.length : null), [images.length]);
 
+  // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (lightboxIdx === null) return;
@@ -32,6 +36,7 @@ export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [lightboxIdx, close, prev, next]);
 
+  // Scroll reveals
   useEffect(() => {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => e.isIntersecting && e.target.classList.add('is-visible')),
@@ -41,18 +46,19 @@ export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
     return () => obs.disconnect();
   }, [images]);
 
+  // ── Caption helper — muestra EN si existe, fallback a ES ──
+  const getCaption = (img: GalleryImage) =>
+    lang === 'en' && img.caption_en ? img.caption_en : img.caption;
+
   if (!images || images.length === 0) return null;
 
   return (
     <div>
-      {/* ── Uniform grid — images & videos ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-        gap: '0.5rem',
-      }}>
+      {/* ── Grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
         {images.map((img, idx) => {
-          const type = resolveType(img);
+          const type    = resolveType(img);
+          const caption = getCaption(img);
           return (
             <div
               key={idx}
@@ -61,42 +67,26 @@ export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
               style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', aspectRatio: '4/3', background: '#1a1a1a', transitionDelay: `${(idx % 6) * 0.05}s` }}
             >
               {type === 'video' ? (
-                /* Video tile: muted loop preview */
                 <>
-                  <video
-                    src={img.src}
-                    muted autoPlay loop playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.45s' }}
-                  />
-                  {/* Play icon overlay */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.25)',
-                    transition: 'background 0.3s',
-                  }}
+                  <video src={img.src} muted autoPlay loop playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.45s' }} />
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)', transition: 'background 0.3s' }}
                     onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(193,29,42,0.3)')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.25)')}
-                  >
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.25)')}>
                     <i className="bi bi-play-circle-fill" style={{ fontSize: '2.2rem', color: 'rgba(255,255,255,0.85)', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }} />
                   </div>
                 </>
               ) : (
-                /* Image tile */
-                <img
-                  src={img.src}
-                  alt={img.alt || ''}
-                  loading={idx < 6 ? 'eager' : 'lazy'}
+                <img src={img.src} alt={img.alt || ''} loading={idx < 6 ? 'eager' : 'lazy'}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.45s cubic-bezier(0.4,0,0.2,1)' }}
                   onMouseEnter={e => ((e.target as HTMLImageElement).style.transform = 'scale(1.05)')}
-                  onMouseLeave={e => ((e.target as HTMLImageElement).style.transform = 'scale(1)')}
-                />
+                  onMouseLeave={e => ((e.target as HTMLImageElement).style.transform = 'scale(1)')} />
               )}
 
-              {/* Caption */}
-              {img.caption && (
+              {/* Caption (translated) */}
+              {caption && (
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.5rem 0.7rem', background: 'linear-gradient(to top, rgba(0,0,0,0.72), transparent)', color: 'rgba(255,255,255,0.8)', fontSize: '0.65rem', letterSpacing: '0.06em' }}>
-                  {img.caption}
+                  {caption}
                 </div>
               )}
 
@@ -118,8 +108,9 @@ export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
 
       {/* ── Lightbox ── */}
       {lightboxIdx !== null && (() => {
-        const img  = images[lightboxIdx];
-        const type = resolveType(img);
+        const img     = images[lightboxIdx];
+        const type    = resolveType(img);
+        const caption = getCaption(img);
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.96)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={close}>
@@ -136,16 +127,13 @@ export default function ProjectGallery({ images }: { images: GalleryImage[] }) {
 
             <div onClick={e => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
               {type === 'video' ? (
-                <video
-                  src={img.src}
-                  controls
-                  autoPlay
-                  style={{ maxWidth: '90vw', maxHeight: '82vh', border: '1px solid rgba(255,255,255,0.08)', background: '#000' }}
-                />
+                <video src={img.src} controls autoPlay
+                  style={{ maxWidth: '90vw', maxHeight: '82vh', border: '1px solid rgba(255,255,255,0.08)', background: '#000' }} />
               ) : (
                 <img src={img.src} alt={img.alt || ''} style={{ maxWidth: '90vw', maxHeight: '82vh', objectFit: 'contain', border: '1px solid rgba(255,255,255,0.08)' }} />
               )}
-              {img.caption && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>{img.caption}</p>}
+              {/* Caption traducido en el lightbox */}
+              {caption && <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', letterSpacing: '0.08em' }}>{caption}</p>}
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.68rem', letterSpacing: '0.12em' }}>{lightboxIdx + 1} / {images.length}</p>
             </div>
 

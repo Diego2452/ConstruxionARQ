@@ -7,27 +7,28 @@ export const supabase = createClient(url, key);
 
 // ── Types ────────────────────────────────────────────────
 export interface DBImage {
-  id:          string;
-  project_id:  string;
-  src:         string;
-  alt:         string;
-  caption:     string | null;
-  is_primary:  boolean;
-  sort_order:  number;
-  media_type?: 'image' | 'video';
+  id:           string;
+  project_id:   string;
+  src:          string;
+  alt:          string;
+  caption:      string | null;
+  caption_en?:  string | null;   // ← traducción EN del caption
+  is_primary:   boolean;
+  sort_order:   number;
+  media_type?:  'image' | 'video';
 }
 
 export interface DBProject {
   id:              string;
   slug:            string;
   title:           string;
-  title_en?:       string | null;   // ← traducción EN
+  title_en?:       string | null;
   location:        string | null;
   manager:         string | null;
   architect:       string | null;
   dimensions:      string | null;
   description:     string | null;
-  description_en?: string | null;   // ← traducción EN
+  description_en?: string | null;
   year:            string | null;
   category:        string | null;
   created_at:      string;

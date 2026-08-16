@@ -6,11 +6,9 @@ import { t } from '@/data/translations';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES } from '@/data/categories';
 
-// ── Years since December 1990 ─────────────────────────────
 function yearsFrom1990(): number {
   return Math.floor((Date.now() - new Date(1990, 11, 1).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -20,22 +18,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// Stock images shown between panels
 const IMGS = [
   'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1920&auto=format&q=80',
 ];
-
-// Fallback hero images (same set, used if Supabase returns nothing)
 const FALLBACK = IMGS;
 
 export default function HomePage() {
   const { lang } = useLang();
   const tr = t[lang];
 
-  // ── Typewriter ─────────────────────────────────────────
+  // ── Hero text persistence ───────────────────────────────
+  // Guardamos en sessionStorage para que no se reinicie al cambiar idioma
   const [typed,   setTyped]   = useState('');
   const [showCsr, setShowCsr] = useState(true);
   const [showSub, setShowSub] = useState(false);
@@ -46,21 +42,48 @@ export default function HomePage() {
   const [heroFade,   setHeroFade]   = useState(true);
   const [kbVariant,  setKbVariant]  = useState(1);
 
-  // ── Parallax mouse ─────────────────────────────────────
-  const [mouse, setMouse]    = useState({ x: 0, y: 0 });
-  const rafRef               = useRef<number | null>(null);
-  const targetMouse          = useRef({ x: 0, y: 0 });
-  const currentMouse         = useRef({ x: 0, y: 0 });
+  // ── Parallax ───────────────────────────────────────────
+  const [mouse,      setMouse]      = useState({ x: 0, y: 0 });
+  const rafRef                      = useRef<number | null>(null);
+  const targetMouse                 = useRef({ x: 0, y: 0 });
+  const currentMouse                = useRef({ x: 0, y: 0 });
 
   const years = yearsFrom1990();
 
-  // ── Fetch project images — async/await para evitar el error de .catch() ──
+  // ── Typewriter — salta la animación si ya se hizo esta sesión ──
+  useEffect(() => {
+    const FULL = 'CONSTRUXIONARQ';
+
+    // Si ya se completó la animación en esta sesión, mostramos el texto directo
+    if (typeof window !== 'undefined' && sessionStorage.getItem('hero-complete') === '1') {
+      setTyped(FULL);
+      setShowCsr(false);
+      setShowSub(true);
+      return;
+    }
+
+    // Primera vez: animación typewriter
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      setTyped(FULL.slice(0, i));
+      if (i >= FULL.length) {
+        clearInterval(iv);
+        setTimeout(() => {
+          setShowCsr(false);
+          setShowSub(true);
+          sessionStorage.setItem('hero-complete', '1');
+        }, 380);
+      }
+    }, 70);
+    return () => clearInterval(iv);
+  }, []); // solo en mount
+
+  // ── Fetch images ───────────────────────────────────────
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const { data } = await supabase
-          .from('project_images')
-          .select('src, media_type');
+        const { data } = await supabase.from('project_images').select('src, media_type');
         const imgs = (data ?? [])
           .filter((item: { media_type?: string }) => !item.media_type || item.media_type === 'image')
           .map((item: { src: string }) => item.src)
@@ -73,7 +96,7 @@ export default function HomePage() {
     fetchImages();
   }, []);
 
-  // ── Auto-advance with RANDOM interval 2-4s ─────────────
+  // ── Auto-advance 2-4s random ───────────────────────────
   const scheduleNext = useCallback(() => {
     if (heroImages.length <= 1) return;
     const delay = 2000 + Math.random() * 2000;
@@ -93,7 +116,7 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroIdx, heroImages.length]);
 
-  // ── Smooth parallax with RAF ───────────────────────────
+  // ── Smooth parallax ────────────────────────────────────
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       targetMouse.current = {
@@ -119,21 +142,6 @@ export default function HomePage() {
     };
   }, []);
 
-  // ── Typewriter ─────────────────────────────────────────
-  useEffect(() => {
-    const FULL = 'CONSTRUXIONARQ';
-    let i = 0;
-    const iv = setInterval(() => {
-      i++;
-      setTyped(FULL.slice(0, i));
-      if (i >= FULL.length) {
-        clearInterval(iv);
-        setTimeout(() => { setShowCsr(false); setShowSub(true); }, 380);
-      }
-    }, 70);
-    return () => clearInterval(iv);
-  }, []);
-
   // ── Scroll reveals ─────────────────────────────────────
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -147,7 +155,7 @@ export default function HomePage() {
   const scrollToStats = () =>
     document.getElementById('stats-section')?.scrollIntoView({ behavior: 'smooth' });
 
-  // ── Shortcut cards ─────────────────────────────────────
+  // ── Shortcuts ──────────────────────────────────────────
   const SHORTCUTS = [
     {
       num:   `+${years}`,
@@ -162,7 +170,7 @@ export default function HomePage() {
       href:  '/proyectos/',
     },
     {
-      num:   lang === 'en' ? 'Permits &\nProcedures' : 'Permisos y\nTrámites',
+      num:   lang === 'en' ? 'Permits &\nProcedures' : '100%',
       label: lang === 'en' ? 'throughout Costa Rica' : 'en todo C.R.',
       icon:  'bi-file-earmark-check',
       href:  '/nosotros/',
@@ -199,7 +207,6 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ── Ken Burns + shortcut hover CSS ── */}
       <style>{`
         @keyframes kb-1 {
           0%   { transform: scale(1.08) translate(0%,    0%   ); }
@@ -221,45 +228,26 @@ export default function HomePage() {
         .shortcut-card:hover .shortcut-arrow { opacity: 1 !important; transform: translateX(4px) !important; }
       `}</style>
 
-      {/* ═══════════════════════════════════════════════════
-          HERO — Parallax + Ken Burns
-      ═══════════════════════════════════════════════════ */}
+      {/* ═══ HERO ═══ */}
       <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: '#000', zIndex: 1 }}>
-        {/* Parallax wrapper */}
-        <div style={{
-          position: 'absolute', inset: '-6%', width: '112%', height: '112%',
-          transform: `translate(${mouse.x * -0.4}px, ${mouse.y * -0.4}px)`,
-          willChange: 'transform',
-        }}>
+        <div style={{ position: 'absolute', inset: '-6%', width: '112%', height: '112%', transform: `translate(${mouse.x * -0.4}px, ${mouse.y * -0.4}px)`, willChange: 'transform' }}>
           {heroImages.map((src, idx) => (
             <img key={src} src={src} alt=""
-              style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
-                objectFit: 'cover',
-                opacity: idx === heroIdx ? (heroFade ? 1 : 0) : 0,
-                transition: 'opacity 0.8s ease-in-out',
-                animation: idx === heroIdx ? `kb-${kbVariant} 9s ease-in-out infinite` : 'none',
-                willChange: 'transform',
-              }}
-            />
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: idx === heroIdx ? (heroFade ? 1 : 0) : 0, transition: 'opacity 0.8s ease-in-out', animation: idx === heroIdx ? `kb-${kbVariant} 9s ease-in-out infinite` : 'none', willChange: 'transform' }} />
           ))}
         </div>
 
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
 
-        {/* Dots */}
         {heroImages.length > 1 && (
           <div style={{ position: 'absolute', bottom: '7rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem', zIndex: 2 }}>
             {heroImages.slice(0, Math.min(heroImages.length, 8)).map((_, idx) => (
-              <button key={idx}
-                onClick={() => { setHeroFade(false); setTimeout(() => { setHeroIdx(idx); setHeroFade(true); }, 300); }}
-                style={{ width: idx === heroIdx ? 20 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer', background: idx === heroIdx ? '#C11D2A' : 'rgba(255,255,255,0.4)', transition: 'all 0.4s', padding: 0 }}
-              />
+              <button key={idx} onClick={() => { setHeroFade(false); setTimeout(() => { setHeroIdx(idx); setHeroFade(true); }, 300); }}
+                style={{ width: idx === heroIdx ? 20 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer', background: idx === heroIdx ? '#C11D2A' : 'rgba(255,255,255,0.4)', transition: 'all 0.4s', padding: 0 }} />
             ))}
           </div>
         )}
 
-        {/* Content */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 1.5rem', paddingTop: 'max(220px, calc(200px + 10vh))' }}>
           <p style={{ fontSize: '0.88rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C11D2A', fontWeight: 600, marginBottom: '1.2rem', textShadow: '0 1px 12px rgba(0,0,0,0.7)' }}>
             {lang === 'en' ? 'Architecture · Design · Construction' : 'Arquitectura · Diseño · Construcción'}
@@ -282,9 +270,7 @@ export default function HomePage() {
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, #000, transparent)', pointerEvents: 'none' }} />
       </section>
 
-      {/* ═══════════════════════════════════════════════════
-          SHORTCUTS — 3 clickable cards
-      ═══════════════════════════════════════════════════ */}
+      {/* ═══ SHORTCUTS ═══ */}
       <section id="stats-section" className="page-card">
         <div style={{ maxWidth: 1290, margin: '0 auto', padding: '4rem 6%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }} className="stats-grid">
           {SHORTCUTS.map((s, i) => (
@@ -305,20 +291,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════
-          PANELS — stock image → nav card (alternating)
-          NOTE: i comes from .map((panel, i) => ...)
-      ═══════════════════════════════════════════════════ */}
+      {/* ═══ PANELS ═══ */}
       {PANELS.map((panel, i) => {
         const isLeft = panel.align === 'left';
         return (
           <div key={panel.title}>
-            {/* Stock image between each panel */}
-            <section
-              className="stock-section"
-              style={{ height: '60vh', backgroundImage: `url(${IMGS[i % IMGS.length]})` }}
-            />
-            {/* Nav card */}
+            <section className="stock-section" style={{ height: '60vh', backgroundImage: `url(${IMGS[i % IMGS.length]})` }} />
             <section className="page-card">
               <div style={{ maxWidth: 1290, margin: '0 auto', padding: '5rem 8%' }}>
                 <div className="reveal" style={{ display: 'flex', flexDirection: 'column', alignItems: isLeft ? 'flex-start' : 'flex-end', textAlign: isLeft ? 'left' : 'right' }}>
@@ -339,11 +317,7 @@ export default function HomePage() {
         );
       })}
 
-      {/* Final stock image before footer */}
-      <section
-        className="stock-section"
-        style={{ height: '45vh', backgroundImage: `url(${IMGS[3]})` }}
-      />
+      <section className="stock-section" style={{ height: '45vh', backgroundImage: `url(${IMGS[3]})` }} />
     </div>
   );
 }

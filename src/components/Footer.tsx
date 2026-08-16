@@ -24,7 +24,7 @@ export default function Footer() {
           </a>
           &nbsp;|&nbsp;
           <span>
-            Last update: <strong className="text-white/60">v2.0.0</strong> · August 15, 2026
+            Last update: <strong className="text-white/60">v2.0.1</strong> · August 15, 2026
           </span>
         </p>
       </div>

@@ -9,31 +9,27 @@ const PAGE_SIZE = 10;
 type MediaType = 'image' | 'video';
 
 interface MediaRow {
-  id?:        string;
-  src:        string;
-  alt:        string;
-  caption:    string;
-  is_primary: boolean;
-  sort_order: number;
-  media_type: MediaType;
-  uploading?: boolean;
-  uploadErr?: string;
+  id?:          string;
+  src:          string;
+  alt:          string;
+  caption:      string;
+  caption_en:   string;    // ← caption en inglés
+  is_primary:   boolean;
+  sort_order:   number;
+  media_type:   MediaType;
+  uploading?:   boolean;
+  uploadErr?:   string;
 }
 
 const emptyRow = (order = 0): MediaRow => ({
-  src: '', alt: '', caption: '', is_primary: false, sort_order: order, media_type: 'image',
+  src: '', alt: '', caption: '', caption_en: '', is_primary: false,
+  sort_order: order, media_type: 'image',
 });
 
-// ── Slug generator — safe URL, no Ñ, no uppercase, no symbols ──
 function toSlug(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')   // remove accent marks (á→a, ñ→n, etc.)
-    .replace(/[^a-z0-9\s-]/g, '')      // remove anything not letter/digit/space/dash
-    .trim()
-    .replace(/\s+/g, '-')              // spaces → dashes
-    .replace(/-+/g, '-');              // collapse multiple dashes
+  return text.toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '')
+    .trim().replace(/\s+/g, '-').replace(/-+/g, '-');
 }
 
 async function uploadMedia(file: File, slug: string, type: MediaType): Promise<string> {
@@ -55,30 +51,13 @@ function validate(slug: string, title: string, rows: MediaRow[]): string | null 
 }
 
 // ── Styles ────────────────────────────────────────────────
-const inp: React.CSSProperties = {
-  width: '100%', padding: '0.65rem 0.85rem',
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-  color: '#fff', fontFamily: "'Roboto', sans-serif", fontSize: '0.85rem',
-  outline: 'none', transition: 'border-color 0.2s',
-};
+const inp: React.CSSProperties = { width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontFamily: "'Roboto', sans-serif", fontSize: '0.85rem', outline: 'none', transition: 'border-color 0.2s' };
 const inpErr: React.CSSProperties = { ...inp, border: '1px solid rgba(193,29,42,0.6)' };
-const inpReadOnly: React.CSSProperties = {
-  ...inp, color: 'rgba(255,255,255,0.4)', cursor: 'default',
-  background: 'rgba(255,255,255,0.02)', userSelect: 'all' as const,
-};
-// Select needs explicit dark colors to override browser defaults
-const selectStyle: React.CSSProperties = {
-  ...inp, cursor: 'pointer',
-  backgroundColor: '#0d0d0d',
-  colorScheme: 'dark',
-  appearance: 'none' as const,
-  WebkitAppearance: 'none' as const,
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 0.8rem center',
-  paddingRight: '2.2rem',
-};
+const inpEn: React.CSSProperties = { ...inp, border: '1px solid rgba(33,150,243,0.2)', background: 'rgba(33,150,243,0.04)' };
+const inpReadOnly: React.CSSProperties = { ...inp, color: 'rgba(255,255,255,0.4)', cursor: 'default', background: 'rgba(255,255,255,0.02)', userSelect: 'all' as const };
+const selectStyle: React.CSSProperties = { ...inp, cursor: 'pointer', backgroundColor: '#0d0d0d', colorScheme: 'dark', appearance: 'none' as const, WebkitAppearance: 'none' as const, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', paddingRight: '2.2rem' };
 const lbl: React.CSSProperties = { fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.4rem' };
+const lblEn: React.CSSProperties = { ...lbl, color: 'rgba(33,150,243,0.7)' };
 const btnRed: React.CSSProperties = { padding: '0.7rem 1.6rem', background: '#C11D2A', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase' };
 const btnGhost: React.CSSProperties = { padding: '0.65rem 1.4rem', background: 'none', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase' };
 const pagBtn: React.CSSProperties = { minWidth: 36, height: 36, padding: '0 0.55rem', border: '1px solid rgba(255,255,255,0.14)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontFamily: "'Roboto', sans-serif", fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.2s, color 0.2s, background 0.2s' };
@@ -122,12 +101,12 @@ function MediaRowComp({ row, idx, total, slug, touched, onChange, onPrimary, onR
     if (row.src) onChange(idx, 'src', '');
   };
   const missingUrl = touched && !row.src.trim();
-  const accept = row.media_type === 'video'
-    ? 'video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.mov'
-    : 'image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif';
+  const accept = row.media_type === 'video' ? 'video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.mov' : 'image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif';
 
   return (
     <div style={{ background: 'rgba(255,255,255,0.03)', border: row.is_primary ? '1px solid rgba(193,29,42,0.5)' : missingUrl ? '1px solid rgba(193,29,42,0.35)' : '1px solid rgba(255,255,255,0.07)', padding: '1.2rem' }}>
+
+      {/* Header: arrows + primary + delete */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         {total > 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', flexShrink: 0 }}>
@@ -149,6 +128,8 @@ function MediaRowComp({ row, idx, total, slug, touched, onChange, onPrimary, onR
         </label>
         {total > 1 && <button onClick={() => onRemove(idx)} style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.5)', cursor: 'pointer', fontSize: '1rem', padding: 0, flexShrink: 0 }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(193,29,42,0.5)')}><i className="bi bi-trash" /></button>}
       </div>
+
+      {/* Type switch */}
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {(['image', 'video'] as MediaType[]).map(tp => (
           <button key={tp} onClick={() => switchType(tp)}
@@ -158,6 +139,8 @@ function MediaRowComp({ row, idx, total, slug, touched, onChange, onPrimary, onR
         ))}
         {row.src && <span style={{ marginLeft: 'auto', fontSize: '0.6rem', color: 'rgba(255,255,255,0.25)', alignSelf: 'center' }}>{row.media_type === 'video' ? '→ project-videos' : '→ project-images'}</span>}
       </div>
+
+      {/* Preview + upload */}
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
         <div style={{ width: 120, height: 80, flexShrink: 0, background: '#111', border: missingUrl ? '1.5px dashed rgba(193,29,42,0.6)' : '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {row.uploading ? <i className="bi bi-arrow-repeat" style={{ color: '#C11D2A', fontSize: '1.5rem', animation: 'spin 1s linear infinite' }} />
@@ -172,23 +155,31 @@ function MediaRowComp({ row, idx, total, slug, touched, onChange, onPrimary, onR
             {row.uploading ? 'Subiendo…' : row.src ? `Reemplazar ${row.media_type === 'video' ? 'video' : 'imagen'}` : `Subir ${row.media_type === 'video' ? 'video' : 'imagen'}`}
           </button>
           <label style={{ ...lbl, fontSize: '0.58rem' }}>O pegar URL</label>
-          <input style={missingUrl ? inpErr : inp} value={row.src}
-            placeholder={row.media_type === 'video' ? 'https://…/video.mp4' : 'https://…/imagen.jpg'}
-            onChange={e => onChange(idx, 'src', e.target.value)}
-            onFocus={e => (e.target.style.borderColor = '#C11D2A')}
-            onBlur={e => (e.target.style.borderColor = missingUrl ? 'rgba(193,29,42,0.6)' : 'rgba(255,255,255,0.1)')} />
+          <input style={missingUrl ? inpErr : inp} value={row.src} placeholder={row.media_type === 'video' ? 'https://…/video.mp4' : 'https://…/imagen.jpg'}
+            onChange={e => onChange(idx, 'src', e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = missingUrl ? 'rgba(193,29,42,0.6)' : 'rgba(255,255,255,0.1)')} />
           {missingUrl && <p style={{ fontSize: '0.62rem', color: '#C11D2A', marginTop: '0.25rem' }}>URL o archivo requerido.</p>}
           {row.uploadErr && <p style={{ fontSize: '0.68rem', color: '#C11D2A', marginTop: '0.3rem' }}><i className="bi bi-exclamation-triangle" /> {row.uploadErr}</p>}
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+
+      {/* Alt + Caption ES + Caption EN */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <div>
           <label style={lbl}>Alt text <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.2)' }}>(opcional)</span></label>
-          <input style={inp} value={row.alt} placeholder="Descripción del contenido" onChange={e => onChange(idx, 'alt', e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
+          <input style={inp} value={row.alt} placeholder="Descripción del contenido"
+            onChange={e => onChange(idx, 'alt', e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
         </div>
-        <div>
-          <label style={lbl}>Caption <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.2)' }}>(opcional)</span></label>
-          <input style={inp} value={row.caption} placeholder="Ej: Fachada Principal" onChange={e => onChange(idx, 'caption', e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <div>
+            <label style={lbl}>Caption (ES) <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.2)' }}>(opcional)</span></label>
+            <input style={inp} value={row.caption} placeholder="Ej: Fachada Principal"
+              onChange={e => onChange(idx, 'caption', e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
+          </div>
+          <div>
+            <label style={lblEn}><i className="bi bi-translate" style={{ marginRight: '0.3rem' }} />Caption (EN) <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.15)' }}>(opcional)</span></label>
+            <input style={inpEn} value={row.caption_en} placeholder="Eg: Main Facade"
+              onChange={e => onChange(idx, 'caption_en', e.target.value)} onFocus={e => (e.target.style.borderColor = '#2196f3')} onBlur={e => (e.target.style.borderColor = 'rgba(33,150,243,0.2)')} />
+          </div>
         </div>
       </div>
     </div>
@@ -246,40 +237,39 @@ export default function AdminProyectosPage() {
     setCategory(p.category ?? ''); setDescription(p.description ?? '');
     setTitleEn(p.title_en ?? ''); setDescriptionEn(p.description_en ?? '');
     const loaded: MediaRow[] = (p.project_images ?? []).map((img, o) => ({
-      id: img.id, src: img.src, alt: img.alt, caption: img.caption ?? '',
-      is_primary: img.is_primary, sort_order: img.sort_order ?? o,
+      id:         img.id,
+      src:        img.src,
+      alt:        img.alt,
+      caption:    img.caption    ?? '',
+      caption_en: img.caption_en ?? '',  // ← cargar caption EN
+      is_primary: img.is_primary,
+      sort_order: img.sort_order ?? o,
       media_type: (img.media_type as MediaType) ?? detectMediaType(img.src),
     }));
     setRows(loaded.length > 0 ? loaded : [emptyRow()]);
     setMsg(''); setPanelOpen(true);
   };
 
-  const closePanel = () => { setPanelOpen(false); setMsg(''); setTouched(false); };
-
-  // ── Title change: auto-generate slug for NEW projects only ──
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    if (!editProject) setSlug(toSlug(value));
-  };
-
-  const changeRow  = (idx: number, field: keyof MediaRow, val: string | boolean | number) =>
+  const closePanel  = () => { setPanelOpen(false); setMsg(''); setTouched(false); };
+  const changeRow   = (idx: number, field: keyof MediaRow, val: string | boolean | number) =>
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: val } : r));
-  const setPrimary = (idx: number) =>
+  const setPrimary  = (idx: number) =>
     setRows(prev => prev.map((r, i) => ({ ...r, is_primary: i === idx })));
-  const addRow     = () => setRows(prev => [...prev, emptyRow(prev.length)]);
-  const removeRow  = (idx: number) => setRows(prev => {
+  const addRow      = () => setRows(prev => [...prev, emptyRow(prev.length)]);
+  const removeRow   = (idx: number) => setRows(prev => {
     const next = prev.filter((_, i) => i !== idx).map((r, i) => ({ ...r, sort_order: i }));
     if (prev[idx].is_primary && next.length > 0) next[0].is_primary = true;
     return next.length > 0 ? next : [emptyRow()];
   });
-  const moveRow = (idx: number, dir: -1 | 1) => {
-    setRows(prev => {
-      const next = [...prev];
-      const swap = idx + dir;
-      if (swap < 0 || swap >= next.length) return prev;
-      [next[idx], next[swap]] = [next[swap], next[idx]];
-      return next.map((r, i) => ({ ...r, sort_order: i }));
-    });
+  const moveRow     = (idx: number, dir: -1 | 1) => setRows(prev => {
+    const next = [...prev]; const swap = idx + dir;
+    if (swap < 0 || swap >= next.length) return prev;
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    return next.map((r, i) => ({ ...r, sort_order: i }));
+  });
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+    if (!editProject) setSlug(toSlug(value));
   };
 
   const handleSave = async () => {
@@ -291,11 +281,10 @@ export default function AdminProyectosPage() {
     setSaving(true); setMsg('');
     try {
       const projectData = {
-        slug: slug.trim(), title: title.trim(),
-        location: location.trim() || null, manager: manager.trim() || null,
-        architect: architect.trim() || null, dimensions: dimensions.trim() || null,
-        year: year.trim() || null, category: category || null,
-        description: description.trim() || null,
+        slug: slug.trim(), title: title.trim(), location: location.trim() || null,
+        manager: manager.trim() || null, architect: architect.trim() || null,
+        dimensions: dimensions.trim() || null, year: year.trim() || null,
+        category: category || null, description: description.trim() || null,
         title_en: titleEn.trim() || null, description_en: descriptionEn.trim() || null,
       };
       if (editProject) {
@@ -303,22 +292,28 @@ export default function AdminProyectosPage() {
         if (pErr) throw new Error(pErr.message);
         await supabase.from('project_images').delete().eq('project_id', editProject.id);
         const { error: iErr } = await supabase.from('project_images').insert(
-          validRows.map((r, i) => ({ project_id: editProject.id, src: r.src, alt: r.alt || r.src, caption: r.caption || null, is_primary: r.is_primary, sort_order: i, media_type: r.media_type }))
+          validRows.map((r, i) => ({
+            project_id: editProject.id, src: r.src, alt: r.alt || r.src,
+            caption: r.caption || null, caption_en: r.caption_en || null,  // ← guardar caption EN
+            is_primary: r.is_primary, sort_order: i, media_type: r.media_type,
+          }))
         );
         if (iErr) throw new Error(iErr.message);
         const changed: string[] = [];
         if (editProject.title !== title.trim()) changed.push('título');
-        if ((editProject.project_images?.length ?? 0) !== validRows.length) changed.push(`media`);
-        await logAction(
-          changed.some(c => c === 'media') ? 'project_images_updated' : 'project_updated',
+        if ((editProject.project_images?.length ?? 0) !== validRows.length) changed.push('media');
+        await logAction(changed.some(c => c === 'media') ? 'project_images_updated' : 'project_updated',
           `Se editó "${title.trim()}". ${changed.length > 0 ? 'Cambios: ' + changed.join(', ') + '.' : ''}`,
-          { entityId: editProject.id, entityName: title.trim() }
-        );
+          { entityId: editProject.id, entityName: title.trim() });
       } else {
         const { data: newP, error: pErr } = await supabase.from('projects').insert(projectData).select().single();
         if (pErr) throw new Error(pErr.message);
         const { error: iErr } = await supabase.from('project_images').insert(
-          validRows.map((r, i) => ({ project_id: newP.id, src: r.src, alt: r.alt || r.src, caption: r.caption || null, is_primary: r.is_primary, sort_order: i, media_type: r.media_type }))
+          validRows.map((r, i) => ({
+            project_id: newP.id, src: r.src, alt: r.alt || r.src,
+            caption: r.caption || null, caption_en: r.caption_en || null,  // ← guardar caption EN
+            is_primary: r.is_primary, sort_order: i, media_type: r.media_type,
+          }))
         );
         if (iErr) throw new Error(iErr.message);
         await logAction('project_created', `Se creó "${title.trim()}" con ${validRows.length} elemento${validRows.length !== 1 ? 's' : ''}.`,
@@ -385,13 +380,13 @@ export default function AdminProyectosPage() {
                             {p.title_en && <div style={{ fontSize: '0.62rem', color: 'rgba(33,150,243,0.6)', marginTop: '0.15rem' }}><i className="bi bi-translate" style={{ marginRight: '0.2rem' }} />{p.title_en}</div>}
                           </td>
                           <td style={{ padding: '0.7rem 1rem', fontSize: '0.75rem' }}>
-                            {p.category ? <span style={{ padding: '0.15rem 0.5rem', background: 'rgba(193,29,42,0.1)', border: '1px solid rgba(193,29,42,0.2)', color: '#C11D2A', fontSize: '0.6rem', letterSpacing: '0.06em' }}>{p.category}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>}
+                            {p.category ? <span style={{ padding: '0.15rem 0.5rem', background: 'rgba(193,29,42,0.1)', border: '1px solid rgba(193,29,42,0.2)', color: '#C11D2A', fontSize: '0.6rem' }}>{p.category}</span> : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>}
                           </td>
                           <td style={{ padding: '0.7rem 1rem', color: 'rgba(255,255,255,0.5)' }}>{p.year ?? '—'}</td>
                           <td style={{ padding: '0.7rem 1rem' }}>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button onClick={() => openEdit(p)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.6)', padding: '0.3rem 0.8rem', cursor: 'pointer', fontSize: '0.72rem', transition: 'all 0.2s' }} onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = '#C11D2A'; el.style.color = '#C11D2A'; }} onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = 'rgba(255,255,255,0.6)'; }}><i className="bi bi-pencil" /> Editar</button>
-                              <button onClick={() => setDeleteTarget(p)} style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.6)', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '1rem', transition: 'color 0.2s' }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(193,29,42,0.6)')}><i className="bi bi-trash" /></button>
+                              <button onClick={() => setDeleteTarget(p)} style={{ background: 'none', border: 'none', color: 'rgba(193,29,42,0.6)', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '1rem' }} onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')} onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(193,29,42,0.6)')}><i className="bi bi-trash" /></button>
                             </div>
                           </td>
                         </tr>
@@ -415,11 +410,10 @@ export default function AdminProyectosPage() {
         <>
           <div onClick={closePanel} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 900 }} />
           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '94%', maxWidth: 720, maxHeight: '88vh', background: '#111', zIndex: 901, overflowY: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.85)', border: '1px solid rgba(255,255,255,0.08)' }}>
-
             <div style={{ position: 'sticky', top: 0, background: '#111', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '1.2rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 }}>
               <div>
                 <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A' }}>{editProject ? 'Editar' : 'Nuevo'} Proyecto</p>
-                <h2 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: '1.2rem', fontWeight: 200, color: '#fff', letterSpacing: '0.06em', marginTop: '0.2rem' }}>{title || (editProject ? editProject.title : 'Sin título')}</h2>
+                <h2 style={{ fontFamily: "'Roboto Flex',sans-serif", fontSize: '1.2rem', fontWeight: 200, color: '#fff', marginTop: '0.2rem' }}>{title || (editProject ? editProject.title : 'Sin título')}</h2>
               </div>
               <button onClick={closePanel} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
@@ -427,26 +421,12 @@ export default function AdminProyectosPage() {
             <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A', borderBottom: '1px solid rgba(193,29,42,0.2)', paddingBottom: '0.5rem' }}>Información General</p>
 
-              {/* ── Título — genera el slug automáticamente ── */}
               <div>
                 <label style={lbl}>Título <span style={{ color: '#C11D2A' }}>*</span></label>
-                <input
-                  style={touched && !title.trim() ? inpErr : inp}
-                  value={title}
-                  placeholder="Casa Ejemplo"
-                  onChange={e => handleTitleChange(e.target.value)}
-                  onFocus={e => (e.target.style.borderColor = '#C11D2A')}
-                  onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
-                />
+                <input style={touched && !title.trim() ? inpErr : inp} value={title} placeholder="Casa Ejemplo" onChange={e => handleTitleChange(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
               </div>
-
-              {/* ── URL auto-generado — READ ONLY ── */}
               <div>
-                <label style={lbl}>
-                  URL del proyecto
-                  {!editProject && <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: '0.4rem', fontWeight: 300 }}>(generado automáticamente)</span>}
-                  {editProject && <span style={{ color: 'rgba(255,255,255,0.25)', marginLeft: '0.4rem', fontWeight: 300 }}>(no se modifica al editar)</span>}
-                </label>
+                <label style={lbl}>URL del proyecto {!editProject ? <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>(auto-generado)</span> : <span style={{ color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>(no cambia al editar)</span>}</label>
                 <div style={{ ...inpReadOnly, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <span style={{ color: 'rgba(255,255,255,0.25)' }}>/proyectos/</span>
                   <span style={{ color: slug ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.2)', fontFamily: 'monospace' }}>{slug || '…'}</span>
@@ -455,26 +435,16 @@ export default function AdminProyectosPage() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={lbl}>Año</label>
-                  <input style={inp} value={year} placeholder="2024" onChange={e => setYear(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
-                </div>
-                {/* ── Categoría: select con fondo oscuro ── */}
+                <div><label style={lbl}>Año</label><input style={inp} value={year} placeholder="2024" onChange={e => setYear(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
                 <div>
                   <label style={lbl}>Categoría</label>
                   <select style={selectStyle} value={category} onChange={e => setCategory(e.target.value)}>
                     <option value="" style={{ background: '#0d0d0d', color: '#fff' }}>— Sin categoría —</option>
-                    {CATEGORIES.map(c => (
-                      <option key={c} value={c} style={{ background: '#0d0d0d', color: '#fff' }}>{c}</option>
-                    ))}
+                    {CATEGORIES.map(c => <option key={c} value={c} style={{ background: '#0d0d0d', color: '#fff' }}>{c}</option>)}
                   </select>
                 </div>
               </div>
-
-              <div>
-                <label style={lbl}>Ubicación</label>
-                <input style={inp} value={location} placeholder="San José, Costa Rica" onChange={e => setLocation(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} />
-              </div>
+              <div><label style={lbl}>Ubicación</label><input style={inp} value={location} placeholder="San José, Costa Rica" onChange={e => setLocation(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div><label style={lbl}>Arquitecto</label><input style={inp} value={architect} placeholder="Arq. Nombre" onChange={e => setArchitect(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
                 <div><label style={lbl}>Project Manager</label><input style={inp} value={manager} placeholder="Nombre PM" onChange={e => setManager(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
@@ -482,18 +452,16 @@ export default function AdminProyectosPage() {
               <div><label style={lbl}>Dimensiones</label><input style={inp} value={dimensions} placeholder="250 Metros Cuadrados" onChange={e => setDimensions(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
               <div><label style={lbl}>Descripción (ES)</label><textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} value={description} placeholder="Descripción del proyecto…" onChange={e => setDescription(e.target.value)} onFocus={e => (e.target.style.borderColor = '#C11D2A')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
 
-              {/* ── Traducción EN ── */}
               <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(33,150,243,0.8)', borderBottom: '1px solid rgba(33,150,243,0.15)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <i className="bi bi-translate" /> Traducción al inglés <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: 300 }}>(opcional)</span>
               </p>
               <div><label style={lbl}>Title (EN)</label><input style={inp} value={titleEn} placeholder="English project title" onChange={e => setTitleEn(e.target.value)} onFocus={e => (e.target.style.borderColor = '#2196f3')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
               <div><label style={lbl}>Description (EN)</label><textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} value={descriptionEn} placeholder="English description…" onChange={e => setDescriptionEn(e.target.value)} onFocus={e => (e.target.style.borderColor = '#2196f3')} onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')} /></div>
 
-              {/* ── Media ── */}
               <p style={{ fontSize: '0.62rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#C11D2A', borderBottom: '1px solid rgba(193,29,42,0.2)', paddingBottom: '0.5rem', marginTop: '0.5rem' }}>Imágenes y Videos</p>
               <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', lineHeight: 1.7 }}>
                 <i className="bi bi-info-circle" style={{ color: '#C11D2A', marginRight: '0.4rem' }} />
-                Usá las flechas ↑↓ para cambiar el orden. El <strong style={{ color: '#C11D2A' }}>★ Principal</strong> es la portada.
+                Flechas ↑↓ para reordenar. El <strong style={{ color: '#C11D2A' }}>★ Principal</strong> es la portada. Cada imagen tiene Caption en ES y EN.
               </p>
               {rows.map((row, idx) => (
                 <MediaRowComp key={idx} row={row} idx={idx} total={rows.length} slug={slug} touched={touched} onChange={changeRow} onPrimary={setPrimary} onRemove={removeRow} onMove={moveRow} />
@@ -514,7 +482,7 @@ export default function AdminProyectosPage() {
         </>
       )}
 
-      {/* ── Confirmar borrar ── */}
+      {/* ── Borrar ── */}
       {deleteTarget && (
         <>
           <div onClick={() => setDeleteTarget(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 950 }} />

@@ -6,19 +6,20 @@ import { t } from '@/data/translations';
 import ProjectGallery from '@/components/ProjectGallery';
 
 interface Image {
-  src: string;
-  alt: string;
-  caption?: string;
-  is_primary?: boolean;
-  media_type?: 'image' | 'video';
+  src:          string;
+  alt:          string;
+  caption?:     string;
+  caption_en?:  string;       // ← traducción EN del caption
+  is_primary?:  boolean;
+  media_type?:  'image' | 'video';
 }
 
 interface Props {
   slug:            string;
   title:           string;
-  title_en?:       string;       // ← traducción EN
+  title_en?:       string;
   description?:    string;
-  description_en?: string;       // ← traducción EN
+  description_en?: string;
   thumbnail:       string;
   location?:       string;
   architect?:      string;
@@ -35,18 +36,10 @@ export default function ProjectContent({
   const { lang } = useLang();
   const tr = t[lang].proyecto;
 
-  // 1. EN dynamic fields (from Supabase title_en / description_en)
-  // 2. EN static fallback (from translations.ts — legacy hardcoded projects)
-  // 3. Spanish (DB default)
+  // Priority: EN dynamic (Supabase) → EN static (translations.ts) → ES (default)
   const projTr = (t[lang].projects as Record<string, { title?: string; description?: string } | undefined>)[slug];
-
-  const displayTitle = lang === 'en' && title_en
-    ? title_en
-    : (projTr?.title ?? title);
-
-  const displayDescription = lang === 'en' && description_en
-    ? description_en
-    : (projTr?.description ?? description);
+  const displayTitle       = lang === 'en' && title_en       ? title_en       : (projTr?.title       ?? title);
+  const displayDescription = lang === 'en' && description_en ? description_en : (projTr?.description ?? description);
 
   const meta = [
     { label: tr.location,   value: location   },
@@ -71,18 +64,15 @@ export default function ProjectContent({
     return () => observer.disconnect();
   }, []);
 
-  const sorted = [...images].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+  const sorted  = [...images].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
   const heroImg = sorted[0] ?? { src: thumbnail, alt: title };
 
   return (
     <div style={{ paddingTop: 200, minHeight: '100vh', background: '#151515' }}>
       {/* ── Hero ── */}
       <div style={{ position: 'relative', width: '100%', height: '55vh', overflow: 'hidden' }}>
-        <img
-          src={heroImg.src}
-          alt={heroImg.alt}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }}
-        />
+        <img src={heroImg.src} alt={heroImg.alt}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.7)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, #151515)' }} />
         <div style={{ position: 'absolute', bottom: '2.5rem', left: 0, right: 0 }}>
           <div style={{ maxWidth: 1290, margin: '0 auto', padding: '0 clamp(1.5rem, 4vw, 2.5rem)' }}>
@@ -119,15 +109,14 @@ export default function ProjectContent({
           )}
         </div>
 
+        {/* Gallery — caption_en is already in the images array, ProjectGallery reads lang itself */}
         <ProjectGallery images={sorted} />
 
         <div className="reveal mt-14">
-          <Link
-            href="/proyectos/"
+          <Link href="/proyectos/"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', transition: 'color 0.2s' }}
             onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C11D2A')}
-            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)')}
-          >
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)')}>
             <i className="bi bi-arrow-left" /> {tr.back}
           </Link>
         </div>
