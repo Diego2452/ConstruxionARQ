@@ -30,11 +30,11 @@ export default function HomePage() {
   const { lang } = useLang();
   const tr = t[lang];
 
-  // ── Hero text persistence ───────────────────────────────
-  // Guardamos en sessionStorage para que no se reinicie al cambiar idioma
+  // ── Solo controlamos el typewriter, nada más ────────────
+  // El subtítulo y el botón son SIEMPRE visibles — no dependen de JS state.
+  // Esto evita que queden invisibles si algo interrumpe la animación.
   const [typed,   setTyped]   = useState('');
   const [showCsr, setShowCsr] = useState(true);
-  const [showSub, setShowSub] = useState(false);
 
   // ── Hero slideshow ─────────────────────────────────────
   const [heroImages, setHeroImages] = useState<string[]>([]);
@@ -50,19 +50,15 @@ export default function HomePage() {
 
   const years = yearsFrom1990();
 
-  // ── Typewriter — salta la animación si ya se hizo esta sesión ──
+  // ── Typewriter — salta si ya se completó esta sesión ───
   useEffect(() => {
     const FULL = 'CONSTRUXIONARQ';
-
-    // Si ya se completó la animación en esta sesión, mostramos el texto directo
+    // Si ya se animó en esta sesión, mostrar completo de inmediato
     if (typeof window !== 'undefined' && sessionStorage.getItem('hero-complete') === '1') {
       setTyped(FULL);
       setShowCsr(false);
-      setShowSub(true);
       return;
     }
-
-    // Primera vez: animación typewriter
     let i = 0;
     const iv = setInterval(() => {
       i++;
@@ -71,13 +67,12 @@ export default function HomePage() {
         clearInterval(iv);
         setTimeout(() => {
           setShowCsr(false);
-          setShowSub(true);
-          sessionStorage.setItem('hero-complete', '1');
+          if (typeof window !== 'undefined') sessionStorage.setItem('hero-complete', '1');
         }, 380);
       }
     }, 70);
     return () => clearInterval(iv);
-  }, []); // solo en mount
+  }, []); // Solo en mount
 
   // ── Fetch images ───────────────────────────────────────
   useEffect(() => {
@@ -116,7 +111,7 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroIdx, heroImages.length]);
 
-  // ── Smooth parallax ────────────────────────────────────
+  // ── Parallax suavizado ─────────────────────────────────
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       targetMouse.current = {
@@ -157,72 +152,24 @@ export default function HomePage() {
 
   // ── Shortcuts ──────────────────────────────────────────
   const SHORTCUTS = [
-    {
-      num:   `+${years}`,
-      label: lang === 'en' ? 'Years of experience' : 'Años de experiencia',
-      icon:  'bi-calendar-check',
-      href:  '/nosotros/',
-    },
-    {
-      num:   `${CATEGORIES.length}`,
-      label: lang === 'en' ? 'Design Categories' : 'Categorías de Diseño',
-      icon:  'bi-grid',
-      href:  '/proyectos/',
-    },
-    {
-      num:   lang === 'en' ? 'Permits &\nProcedures' : '100%',
-      label: lang === 'en' ? 'throughout Costa Rica' : 'en todo C.R.',
-      icon:  'bi-file-earmark-check',
-      href:  '/nosotros/',
-    },
+    { num: `+${years}`, label: lang === 'en' ? 'Years of experience' : 'Años de experiencia', icon: 'bi-calendar-check', href: '/nosotros/' },
+    { num: `${CATEGORIES.length}`, label: lang === 'en' ? 'Design Categories' : 'Categorías de Diseño', icon: 'bi-grid', href: '/proyectos/' },
+    { num: lang === 'en' ? 'Permits &\nProcedures' : '100%', label: lang === 'en' ? 'throughout Costa Rica' : 'en todo C.R.', icon: 'bi-file-earmark-check', href: '/nosotros/' },
   ];
 
   // ── Panels ─────────────────────────────────────────────
   const PANELS = [
-    {
-      eyebrow: lang === 'en' ? 'Our project portfolio'              : 'Nuestro portafolio de obra',
-      title:   tr.nav.proyectos,
-      href:    '/proyectos/',
-      icon:    'bi-grid-3x3',
-      align:   'left',
-      stat:    { num: `${CATEGORIES.length}`, label: lang === 'en' ? 'design categories' : 'categorías de diseño' },
-    },
-    {
-      eyebrow: lang === 'en' ? 'Who we are and what drives us'     : 'Quiénes somos y qué nos mueve',
-      title:   tr.nav.nosotros,
-      href:    '/nosotros/',
-      icon:    'bi-people',
-      align:   'right',
-      stat:    { num: '1990', label: lang === 'en' ? 'team founded' : 'fundación del equipo' },
-    },
-    {
-      eyebrow: lang === 'en' ? "Let's talk about your next project" : 'Hablemos de tu próximo proyecto',
-      title:   tr.nav.contactar,
-      href:    '/contactar/',
-      icon:    'bi-chat-dots',
-      align:   'left',
-      stat:    { num: '100%', label: lang === 'en' ? 'client commitment' : 'compromiso con el cliente' },
-    },
+    { eyebrow: lang === 'en' ? 'Our project portfolio'              : 'Nuestro portafolio de obra',     title: tr.nav.proyectos, href: '/proyectos/', icon: 'bi-grid-3x3', align: 'left',  stat: { num: `${CATEGORIES.length}`, label: lang === 'en' ? 'design categories' : 'categorías de diseño' } },
+    { eyebrow: lang === 'en' ? 'Who we are and what drives us'     : 'Quiénes somos y qué nos mueve',  title: tr.nav.nosotros,  href: '/nosotros/',  icon: 'bi-people',   align: 'right', stat: { num: '1990', label: lang === 'en' ? 'team founded' : 'fundación del equipo' } },
+    { eyebrow: lang === 'en' ? "Let's talk about your next project" : 'Hablemos de tu próximo proyecto', title: tr.nav.contactar, href: '/contactar/', icon: 'bi-chat-dots', align: 'left',  stat: { num: '100%', label: lang === 'en' ? 'client commitment' : 'compromiso con el cliente' } },
   ];
 
   return (
     <div>
       <style>{`
-        @keyframes kb-1 {
-          0%   { transform: scale(1.08) translate(0%,    0%   ); }
-          40%  { transform: scale(1.14) translate(-1.2%, -0.6%); }
-          100% { transform: scale(1.08) translate(0%,    0%   ); }
-        }
-        @keyframes kb-2 {
-          0%   { transform: scale(1.10) translate( 0.8%,  0.4%); }
-          50%  { transform: scale(1.15) translate(-0.6%, -1.0%); }
-          100% { transform: scale(1.10) translate( 0.8%,  0.4%); }
-        }
-        @keyframes kb-3 {
-          0%   { transform: scale(1.09) translate(-0.4%,  0.6%); }
-          45%  { transform: scale(1.13) translate( 0.8%, -0.4%); }
-          100% { transform: scale(1.09) translate(-0.4%,  0.6%); }
-        }
+        @keyframes kb-1 { 0%{transform:scale(1.08) translate(0%,0%)} 40%{transform:scale(1.14) translate(-1.2%,-0.6%)} 100%{transform:scale(1.08) translate(0%,0%)} }
+        @keyframes kb-2 { 0%{transform:scale(1.10) translate(0.8%,0.4%)} 50%{transform:scale(1.15) translate(-0.6%,-1.0%)} 100%{transform:scale(1.10) translate(0.8%,0.4%)} }
+        @keyframes kb-3 { 0%{transform:scale(1.09) translate(-0.4%,0.6%)} 45%{transform:scale(1.13) translate(0.8%,-0.4%)} 100%{transform:scale(1.09) translate(-0.4%,0.6%)} }
         .shortcut-card:hover { background: rgba(193,29,42,0.12) !important; border-color: rgba(193,29,42,0.5) !important; }
         .shortcut-card:hover .shortcut-num { color: #fff !important; }
         .shortcut-card:hover .shortcut-arrow { opacity: 1 !important; transform: translateX(4px) !important; }
@@ -230,6 +177,7 @@ export default function HomePage() {
 
       {/* ═══ HERO ═══ */}
       <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: '#000', zIndex: 1 }}>
+        {/* Parallax */}
         <div style={{ position: 'absolute', inset: '-6%', width: '112%', height: '112%', transform: `translate(${mouse.x * -0.4}px, ${mouse.y * -0.4}px)`, willChange: 'transform' }}>
           {heroImages.map((src, idx) => (
             <img key={src} src={src} alt=""
@@ -239,6 +187,7 @@ export default function HomePage() {
 
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
 
+        {/* Dots */}
         {heroImages.length > 1 && (
           <div style={{ position: 'absolute', bottom: '7rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem', zIndex: 2 }}>
             {heroImages.slice(0, Math.min(heroImages.length, 8)).map((_, idx) => (
@@ -248,19 +197,36 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Content — subtítulo y botón SIEMPRE visibles, sin depender de JS state */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 1.5rem', paddingTop: 'max(220px, calc(200px + 10vh))' }}>
+
+          {/* Eyebrow — siempre visible */}
           <p style={{ fontSize: '0.88rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C11D2A', fontWeight: 600, marginBottom: '1.2rem', textShadow: '0 1px 12px rgba(0,0,0,0.7)' }}>
             {lang === 'en' ? 'Architecture · Design · Construction' : 'Arquitectura · Diseño · Construcción'}
           </p>
+
+          {/* Título — typewriter */}
           <h1 style={{ fontFamily: "'Roboto Flex', Roboto, sans-serif", fontSize: 'clamp(2.2rem, 6vw, 5.5rem)', fontWeight: 200, letterSpacing: '0.18em', color: '#fff', lineHeight: 1, textShadow: '0 2px 30px rgba(0,0,0,0.6)' }}>
             {typed.slice(0, 11)}<span style={{ color: '#C11D2A' }}>{typed.slice(11)}</span>
             {showCsr && <span className="typewriter-cursor" />}
           </h1>
-          <p style={{ marginTop: '1.5rem', fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.88)', fontWeight: 400, opacity: showSub ? 1 : 0, transform: showSub ? 'none' : 'translateY(12px)', transition: 'opacity 0.9s, transform 0.9s', textShadow: '0 1px 16px rgba(0,0,0,0.7)' }}>
+
+          {/* Subtítulo — SIEMPRE VISIBLE, sin opacity controlada por JS */}
+          <p style={{
+            marginTop: '1.5rem',
+            fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.88)',
+            fontWeight: 400,
+            textShadow: '0 1px 16px rgba(0,0,0,0.7)',
+          }}>
             {tr.tagline.line1} — {tr.tagline.line2} — {tr.tagline.since}
           </p>
+
+          {/* Botón — SIEMPRE VISIBLE */}
           <button onClick={scrollToStats}
-            style={{ marginTop: '3.5rem', background: 'none', border: '1px solid rgba(255,255,255,0.32)', color: 'rgba(255,255,255,0.78)', padding: '0.65rem 1.8rem', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.6rem', opacity: showSub ? 1 : 0, transition: 'opacity 1.1s, border-color 0.25s, color 0.25s' }}
+            style={{ marginTop: '3.5rem', background: 'none', border: '1px solid rgba(255,255,255,0.32)', color: 'rgba(255,255,255,0.78)', padding: '0.65rem 1.8rem', fontFamily: "'Roboto', sans-serif", fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.6rem', transition: 'border-color 0.25s, color 0.25s' }}
             onMouseEnter={e => { const b = e.currentTarget; b.style.borderColor = '#C11D2A'; b.style.color = '#C11D2A'; }}
             onMouseLeave={e => { const b = e.currentTarget; b.style.borderColor = 'rgba(255,255,255,0.32)'; b.style.color = 'rgba(255,255,255,0.78)'; }}>
             {tr.home.scrollCta}&nbsp;<i className="bi bi-chevron-double-down" style={{ fontSize: '0.78rem' }} />
@@ -316,7 +282,6 @@ export default function HomePage() {
           </div>
         );
       })}
-
       <section className="stock-section" style={{ height: '45vh', backgroundImage: `url(${IMGS[3]})` }} />
     </div>
   );
