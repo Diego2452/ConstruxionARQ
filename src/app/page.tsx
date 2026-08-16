@@ -1,16 +1,16 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/contexts/LanguageContext';
 import { t } from '@/data/translations';
 import { supabase } from '@/lib/supabase';
+import { CATEGORIES } from '@/data/categories';
 
 // ── Years since December 1990 ─────────────────────────────
 function yearsFrom1990(): number {
   return Math.floor((Date.now() - new Date(1990, 11, 1).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
-// ── Shuffle ───────────────────────────────────────────────
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -20,11 +20,16 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-const FALLBACK = [
+// Stock images shown between panels
+const IMGS = [
   'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1920&auto=format&q=80',
   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1920&auto=format&q=80',
+  'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1920&auto=format&q=80',
 ];
+
+// Fallback hero images (same set, used if Supabase returns nothing)
+const FALLBACK = IMGS;
 
 export default function HomePage() {
   const { lang } = useLang();
@@ -36,60 +41,85 @@ export default function HomePage() {
   const [showSub, setShowSub] = useState(false);
 
   // ── Hero slideshow ─────────────────────────────────────
-  const [heroImages, setHeroImages] = useState<string[]>(FALLBACK);
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [heroFade, setHeroFade] = useState(true);
+  const [heroImages, setHeroImages] = useState<string[]>([]);
+  const [heroIdx,    setHeroIdx]    = useState(0);
+  const [heroFade,   setHeroFade]   = useState(true);
+  const [kbVariant,  setKbVariant]  = useState(1);
 
-  // ── Real stats ─────────────────────────────────────────
-  const [projectCount, setProjectCount] = useState<number | null>(null);
+  // ── Parallax mouse ─────────────────────────────────────
+  const [mouse, setMouse]    = useState({ x: 0, y: 0 });
+  const rafRef               = useRef<number | null>(null);
+  const targetMouse          = useRef({ x: 0, y: 0 });
+  const currentMouse         = useRef({ x: 0, y: 0 });
+
   const years = yearsFrom1990();
 
-  // Fetch project primary images from Supabase
+  // ── Fetch project images — async/await para evitar el error de .catch() ──
   useEffect(() => {
-    async function loadImages() {
+    const fetchImages = async () => {
       try {
         const { data } = await supabase
           .from('project_images')
-          .select('src')
-          .eq('is_primary', true)
-          .limit(10);
-        const imgs = (data ?? []).map((i: { src: string }) => i.src).filter(Boolean);
-        setHeroImages(imgs.length >= 2 ? imgs : FALLBACK);
+          .select('src, media_type');
+        const imgs = (data ?? [])
+          .filter((item: { media_type?: string }) => !item.media_type || item.media_type === 'image')
+          .map((item: { src: string }) => item.src)
+          .filter(Boolean);
+        setHeroImages(imgs.length >= 3 ? shuffle(imgs) : FALLBACK);
       } catch {
         setHeroImages(FALLBACK);
       }
-    }
-    void loadImages();
+    };
+    fetchImages();
   }, []);
 
-  // Fetch real project count
-  useEffect(() => {
-    async function loadCount() {
-      try {
-        const { count } = await supabase.from('projects').select('*', { count: 'exact', head: true });
-        setProjectCount(count ?? 0);
-      } catch {
-        setProjectCount(0);
-      }
-    }
-
-    void loadCount();
-  }, []);
-
-  // Auto-advance every 5s with crossfade
-  useEffect(() => {
+  // ── Auto-advance with RANDOM interval 2-4s ─────────────
+  const scheduleNext = useCallback(() => {
     if (heroImages.length <= 1) return;
-    const interval = setInterval(() => {
+    const delay = 2000 + Math.random() * 2000;
+    return setTimeout(() => {
       setHeroFade(false);
       setTimeout(() => {
         setHeroIdx(i => (i + 1) % heroImages.length);
+        setKbVariant(v => (v % 3) + 1);
         setHeroFade(true);
       }, 700);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [heroImages]);
+    }, delay);
+  }, [heroImages.length]);
 
-  // Typewriter
+  useEffect(() => {
+    const timer = scheduleNext();
+    return () => { if (timer) clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroIdx, heroImages.length]);
+
+  // ── Smooth parallax with RAF ───────────────────────────
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      targetMouse.current = {
+        x: (e.clientX / window.innerWidth  - 0.5) * 18,
+        y: (e.clientY / window.innerHeight - 0.5) * 12,
+      };
+    };
+    window.addEventListener('mousemove', onMove);
+    const animate = () => {
+      const dx = targetMouse.current.x - currentMouse.current.x;
+      const dy = targetMouse.current.y - currentMouse.current.y;
+      if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
+        currentMouse.current.x += dx * 0.06;
+        currentMouse.current.y += dy * 0.06;
+        setMouse({ x: currentMouse.current.x, y: currentMouse.current.y });
+      }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  // ── Typewriter ─────────────────────────────────────────
   useEffect(() => {
     const FULL = 'CONSTRUXIONARQ';
     let i = 0;
@@ -104,7 +134,7 @@ export default function HomePage() {
     return () => clearInterval(iv);
   }, []);
 
-  // Scroll reveals
+  // ── Scroll reveals ─────────────────────────────────────
   useEffect(() => {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => e.isIntersecting && e.target.classList.add('is-visible')),
@@ -117,37 +147,40 @@ export default function HomePage() {
   const scrollToStats = () =>
     document.getElementById('stats-section')?.scrollIntoView({ behavior: 'smooth' });
 
-  // Dynamic STATS
-  const STATS = [
+  // ── Shortcut cards ─────────────────────────────────────
+  const SHORTCUTS = [
     {
       num:   `+${years}`,
-      label: tr.home.stats.experience,
+      label: lang === 'en' ? 'Years of experience' : 'Años de experiencia',
       icon:  'bi-calendar-check',
+      href:  '/nosotros/',
     },
     {
-      num:   projectCount !== null ? `+${projectCount}` : '+…',
-      label: tr.home.stats.builds,
-      icon:  'bi-buildings',
+      num:   `${CATEGORIES.length}`,
+      label: lang === 'en' ? 'Design Categories' : 'Categorías de Diseño',
+      icon:  'bi-grid',
+      href:  '/proyectos/',
     },
     {
-      num:   '100%',
-      label: tr.home.stats.territory,
-      img:   '/images/cr.png',
+      num:   lang === 'en' ? 'Permits &\nProcedures' : 'Permisos y\nTrámites',
+      label: lang === 'en' ? 'throughout Costa Rica' : 'en todo C.R.',
+      icon:  'bi-file-earmark-check',
+      href:  '/nosotros/',
     },
   ];
 
-  // Translated PANELS
+  // ── Panels ─────────────────────────────────────────────
   const PANELS = [
     {
-      eyebrow: lang === 'en' ? 'Our project portfolio' : 'Nuestro portafolio de obra',
+      eyebrow: lang === 'en' ? 'Our project portfolio'              : 'Nuestro portafolio de obra',
       title:   tr.nav.proyectos,
       href:    '/proyectos/',
       icon:    'bi-grid-3x3',
       align:   'left',
-      stat:    { num: projectCount !== null ? `+${projectCount}` : '+…', label: lang === 'en' ? 'documented projects' : 'proyectos documentados' },
+      stat:    { num: `${CATEGORIES.length}`, label: lang === 'en' ? 'design categories' : 'categorías de diseño' },
     },
     {
-      eyebrow: lang === 'en' ? 'Who we are and what drives us' : 'Quiénes somos y qué nos mueve',
+      eyebrow: lang === 'en' ? 'Who we are and what drives us'     : 'Quiénes somos y qué nos mueve',
       title:   tr.nav.nosotros,
       href:    '/nosotros/',
       icon:    'bi-people',
@@ -166,7 +199,7 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ── CSS animations ── */}
+      {/* ── Ken Burns + shortcut hover CSS ── */}
       <style>{`
         @keyframes kb-1 {
           0%   { transform: scale(1.08) translate(0%,    0%   ); }
@@ -183,39 +216,45 @@ export default function HomePage() {
           45%  { transform: scale(1.13) translate( 0.8%, -0.4%); }
           100% { transform: scale(1.09) translate(-0.4%,  0.6%); }
         }
+        .shortcut-card:hover { background: rgba(193,29,42,0.12) !important; border-color: rgba(193,29,42,0.5) !important; }
+        .shortcut-card:hover .shortcut-num { color: #fff !important; }
+        .shortcut-card:hover .shortcut-arrow { opacity: 1 !important; transform: translateX(4px) !important; }
       `}</style>
 
       {/* ═══════════════════════════════════════════════════
-          HERO — Parallax + Ken Burns + Random slideshow
+          HERO — Parallax + Ken Burns
       ═══════════════════════════════════════════════════ */}
       <section style={{ position: 'relative', height: '100vh', overflow: 'hidden', background: '#000', zIndex: 1 }}>
+        {/* Parallax wrapper */}
+        <div style={{
+          position: 'absolute', inset: '-6%', width: '112%', height: '112%',
+          transform: `translate(${mouse.x * -0.4}px, ${mouse.y * -0.4}px)`,
+          willChange: 'transform',
+        }}>
+          {heroImages.map((src, idx) => (
+            <img key={src} src={src} alt=""
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover',
+                opacity: idx === heroIdx ? (heroFade ? 1 : 0) : 0,
+                transition: 'opacity 0.8s ease-in-out',
+                animation: idx === heroIdx ? `kb-${kbVariant} 9s ease-in-out infinite` : 'none',
+                willChange: 'transform',
+              }}
+            />
+          ))}
+        </div>
 
-        {heroImages.map((src, i) => (
-          <img
-            key={src}
-            src={src}
-            alt=""
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: i === heroIdx ? (heroFade ? 1 : 0) : 0,
-              transition: 'opacity 0.8s ease-in-out',
-            }}
-          />
-        ))}
-
-        {/* Dark overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} />
 
         {/* Dots */}
         {heroImages.length > 1 && (
           <div style={{ position: 'absolute', bottom: '7rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem', zIndex: 2 }}>
-            {heroImages.slice(0, Math.min(heroImages.length, 8)).map((_, i) => (
-              <button key={i} onClick={() => { setHeroFade(false); setTimeout(() => { setHeroIdx(i); setHeroFade(true); }, 300); }}
-                style={{ width: i === heroIdx ? 20 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer', background: i === heroIdx ? '#C11D2A' : 'rgba(255,255,255,0.4)', transition: 'all 0.4s', padding: 0 }} />
+            {heroImages.slice(0, Math.min(heroImages.length, 8)).map((_, idx) => (
+              <button key={idx}
+                onClick={() => { setHeroFade(false); setTimeout(() => { setHeroIdx(idx); setHeroFade(true); }, 300); }}
+                style={{ width: idx === heroIdx ? 20 : 6, height: 6, borderRadius: 3, border: 'none', cursor: 'pointer', background: idx === heroIdx ? '#C11D2A' : 'rgba(255,255,255,0.4)', transition: 'all 0.4s', padding: 0 }}
+              />
             ))}
           </div>
         )}
@@ -229,7 +268,7 @@ export default function HomePage() {
             {typed.slice(0, 11)}<span style={{ color: '#C11D2A' }}>{typed.slice(11)}</span>
             {showCsr && <span className="typewriter-cursor" />}
           </h1>
-          <p style={{ marginTop: '1.5rem', fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.88)', fontWeight: 400, transition: 'opacity 0.9s, transform 0.9s', textShadow: '0 1px 16px rgba(0,0,0,0.7)' }}>
+          <p style={{ marginTop: '1.5rem', fontSize: 'clamp(0.78rem, 1.2vw, 0.95rem)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.88)', fontWeight: 400, opacity: showSub ? 1 : 0, transform: showSub ? 'none' : 'translateY(12px)', transition: 'opacity 0.9s, transform 0.9s', textShadow: '0 1px 16px rgba(0,0,0,0.7)' }}>
             {tr.tagline.line1} — {tr.tagline.line2} — {tr.tagline.since}
           </p>
           <button onClick={scrollToStats}
@@ -244,47 +283,48 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          STATS — Real values, centered icons
+          SHORTCUTS — 3 clickable cards
       ═══════════════════════════════════════════════════ */}
       <section id="stats-section" className="page-card">
         <div style={{ maxWidth: 1290, margin: '0 auto', padding: '4rem 6%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }} className="stats-grid">
-          {STATS.map((s, i) => (
-            <div key={i} className="stat-subcard reveal" style={{ transitionDelay: `${i * 0.1}s`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          {SHORTCUTS.map((s, i) => (
+            <Link key={i} href={s.href} className="shortcut-card reveal"
+              style={{ transitionDelay: `${i * 0.1}s`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: 'rgba(193,29,42,0.06)', border: '1px solid rgba(193,29,42,0.2)', padding: '2.5rem 1.5rem', textDecoration: 'none', transition: 'background 0.25s, border-color 0.25s', position: 'relative', cursor: 'pointer' }}>
               <div style={{ height: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                {s.img ? (
-                  <img src={s.img} alt={s.label} style={{ height: '1.7rem', width: 'auto', objectFit: 'contain' }} />
-                ) : (
-                  <i className={`bi ${s.icon}`} style={{ fontSize: '1.7rem', color: 'rgba(255,255,255,0.88)' }} />
-                )}
+                <i className={`bi ${s.icon}`} style={{ fontSize: '1.7rem', color: '#C11D2A' }} />
               </div>
-              <div style={{ fontFamily: "'Roboto Flex', sans-serif", fontSize: 'clamp(2.2rem, 4vw, 3.6rem)', fontWeight: 200, color: '#fff', lineHeight: 1, marginBottom: '0.5rem' }}>
+              <div className="shortcut-num" style={{ fontFamily: "'Roboto Flex', sans-serif", fontSize: 'clamp(1.8rem, 3.5vw, 3rem)', fontWeight: 200, color: 'rgba(255,255,255,0.9)', lineHeight: 1.1, marginBottom: '0.5rem', whiteSpace: 'pre-line', transition: 'color 0.25s' }}>
                 {s.num}
               </div>
-              <div style={{ fontSize: '0.7rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)', fontWeight: 400 }}>
+              <div style={{ fontSize: '0.7rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontWeight: 400 }}>
                 {s.label}
               </div>
-            </div>
+              <i className="bi bi-arrow-right shortcut-arrow" style={{ position: 'absolute', bottom: '1rem', right: '1rem', color: '#C11D2A', fontSize: '0.9rem', opacity: 0, transition: 'opacity 0.25s, transform 0.25s' }} />
+            </Link>
           ))}
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          PANELS — Translated
+          PANELS — stock image → nav card (alternating)
+          NOTE: i comes from .map((panel, i) => ...)
       ═══════════════════════════════════════════════════ */}
-      {PANELS.map((panel) => {
+      {PANELS.map((panel, i) => {
         const isLeft = panel.align === 'left';
         return (
           <div key={panel.title}>
+            {/* Stock image between each panel */}
+            <section
+              className="stock-section"
+              style={{ height: '60vh', backgroundImage: `url(${IMGS[i % IMGS.length]})` }}
+            />
+            {/* Nav card */}
             <section className="page-card">
               <div style={{ maxWidth: 1290, margin: '0 auto', padding: '5rem 8%' }}>
                 <div className="reveal" style={{ display: 'flex', flexDirection: 'column', alignItems: isLeft ? 'flex-start' : 'flex-end', textAlign: isLeft ? 'left' : 'right' }}>
                   <i className={`bi ${panel.icon}`} style={{ fontSize: '1.9rem', color: '#C11D2A', marginBottom: '1.2rem' }} />
-                  <p style={{ fontSize: '0.72rem', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem', fontWeight: 500 }}>
-                    {panel.eyebrow}
-                  </p>
-                  <h2 style={{ fontFamily: "'Roboto Flex', Roboto, sans-serif", fontSize: 'clamp(3rem, 7vw, 7.5rem)', fontWeight: 200, letterSpacing: '0.1em', color: '#fff', lineHeight: 1, marginBottom: '2rem' }}>
-                    {panel.title}
-                  </h2>
+                  <p style={{ fontSize: '0.72rem', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem', fontWeight: 500 }}>{panel.eyebrow}</p>
+                  <h2 style={{ fontFamily: "'Roboto Flex', Roboto, sans-serif", fontSize: 'clamp(3rem, 7vw, 7.5rem)', fontWeight: 200, letterSpacing: '0.1em', color: '#fff', lineHeight: 1, marginBottom: '2rem' }}>{panel.title}</h2>
                   <Link href={panel.href} className="panel-cta">
                     {lang === 'en' ? 'Explore' : 'Explorar'}&nbsp;&nbsp;<i className="bi bi-arrow-right" />
                   </Link>
@@ -298,6 +338,12 @@ export default function HomePage() {
           </div>
         );
       })}
+
+      {/* Final stock image before footer */}
+      <section
+        className="stock-section"
+        style={{ height: '45vh', backgroundImage: `url(${IMGS[3]})` }}
+      />
     </div>
   );
 }
